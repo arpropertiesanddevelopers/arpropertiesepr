@@ -297,7 +297,7 @@ export default function PrintViews({
                     <div className="space-y-2 text-right">
                       <p><span className="font-semibold text-natural-muted">তারিখ / Date:</span> <span className="font-bold text-natural-text">{selectedPayment ? selectedPayment.date : new Date().toISOString().split('T')[0]}</span></p>
                       <p><span className="font-semibold text-natural-muted">প্রকল্পের নাম / Project:</span> <span className="font-bold text-natural-text">{getLocalizedValue(customer.projectName)}</span></p>
-                      <p><span className="font-semibold text-natural-muted">প্লট নম্বর / Plot No:</span> <span className="text-natural-text">{getLocalizedValue(customer.plotNo) || 'N/A'} (আকার: {customer.plotSize} শতাংশ / {customer.plotSize} Decimal)</span></p>
+                      <p><span className="font-semibold text-natural-muted">প্লট/রোড নম্বর / Plot & Road No:</span> <span className="text-natural-text">{getLocalizedValue(customer.plotNo) || 'N/A'} (আকার: {customer.plotSize} শতাংশ / {customer.plotSize} Decimal)</span></p>
                       <p><span className="font-semibold text-natural-muted">জাতীয় পরিচয়পত্র / NID:</span> <span className="text-natural-text">{customer.nid}</span></p>
                     </div>
                   </div>
@@ -441,7 +441,7 @@ export default function PrintViews({
               const textProjectDetails = isBn ? 'প্রকল্পের বিবরণ:' : isEn ? 'Project Details:' : 'প্রকল্পের বিবরণ (Project Details):';
               const textProjectName = isBn ? 'প্রকল্পের নাম' : isEn ? 'Project Name' : 'প্রকল্পের নাম (Project Name)';
               const textProjectAddress = isBn ? 'প্রকল্পের ঠিকানা' : isEn ? 'Project Address' : 'প্রকল্পের ঠিকানা (Project Address)';
-              const textPlotNo = isBn ? 'প্লট নং' : isEn ? 'Plot No' : 'প্লট নং (Plot No)';
+              const textPlotNo = isBn ? 'প্লট / রোড নং' : isEn ? 'Plot / Road No' : 'প্লট / রোড নং (Plot / Road No)';
               const textPlotSize = isBn ? 'প্লটের আকার' : isEn ? 'Plot Size' : 'প্লটের আকার (Plot Size)';
 
               const textPrice = isBn ? 'মূল্য বিবরণী:' : isEn ? 'Price Details:' : 'মূল্য বিবরণী (Price Details):';
@@ -1019,7 +1019,7 @@ export default function PrintViews({
                     <p><span className="font-semibold text-natural-muted">মোবাইল নং:</span> <span className="text-natural-text">{customer.mobile}</span></p>
                     <p><span className="font-semibold text-natural-muted">এনআইডি নং (NID):</span> <span className="text-natural-text font-mono">{customer.nid}</span></p>
                     <p><span className="font-semibold text-natural-muted">প্রকল্পের নাম:</span> <span className="text-natural-text">{getLocalizedValue(customer.projectName)}</span></p>
-                    <p><span className="font-semibold text-natural-muted">প্লট নম্বর:</span> <span className="font-bold text-natural-text">{getLocalizedValue(customer.plotNo)}</span></p>
+                    <p><span className="font-semibold text-natural-muted">প্লট/রোড নম্বর:</span> <span className="font-bold text-natural-text">{getLocalizedValue(customer.plotNo)}</span></p>
                     <p><span className="font-semibold text-natural-muted">প্লটের আকার:</span> <span className="font-bold text-natural-text">{toBengaliDigits(customer.plotSize)} শতক (Decimals)</span></p>
                   </div>
 

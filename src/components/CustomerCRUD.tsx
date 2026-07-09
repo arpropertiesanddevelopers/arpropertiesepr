@@ -3,6 +3,18 @@ import { Customer, Payment, Project, PaymentMethod } from '../types';
 import { formatCurrency, generateCustomerId, exportToCSV } from '../utils';
 import { Plus, Search, Edit2, Trash2, X, Save, AlertTriangle, Eye, RefreshCw, FileSpreadsheet } from 'lucide-react';
 
+export interface ManualImportRow {
+  name: string;
+  mobile: string;
+  nid: string;
+  projectName: string;
+  projectAddress: string;
+  plotNo: string;
+  plotSize: number;
+  pricePerDecimal: number;
+  totalPaid: number;
+}
+
 interface CustomerCRUDProps {
   customers: Customer[];
   payments: Payment[];
@@ -52,6 +64,208 @@ export default function CustomerCRUD({
   const [bookingReceiptNo, setBookingReceiptNo] = useState('');
   const [bookingMethod, setBookingMethod] = useState<PaymentMethod>('Cash');
   const [bookingRemarks, setBookingRemarks] = useState('বুকিং পেমেন্ট (Booking Payment)');
+
+  // Bulk Import States
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [manualRows, setManualRows] = useState<ManualImportRow[]>([]);
+
+  // Open Import Modal
+  const handleOpenImportModal = () => {
+    setManualRows([
+      {
+        name: '',
+        mobile: '',
+        nid: '',
+        projectName: projects[0]?.name || '',
+        projectAddress: projects[0]?.address || '',
+        plotNo: '',
+        plotSize: 0,
+        pricePerDecimal: 0,
+        totalPaid: 0
+      }
+    ]);
+    setIsImportModalOpen(true);
+  };
+
+  const handleAddImportRow = () => {
+    setManualRows([
+      ...manualRows,
+      {
+        name: '',
+        mobile: '',
+        nid: '',
+        projectName: projects[0]?.name || '',
+        projectAddress: projects[0]?.address || '',
+        plotNo: '',
+        plotSize: 0,
+        pricePerDecimal: 0,
+        totalPaid: 0
+      }
+    ]);
+  };
+
+  const handleRemoveImportRow = (index: number) => {
+    const updated = [...manualRows];
+    updated.splice(index, 1);
+    setManualRows(updated);
+  };
+
+  const handleUpdateImportRow = (index: number, field: keyof ManualImportRow, value: any) => {
+    const updated = [...manualRows];
+    if (field === 'projectName') {
+      const selectedProj = projects.find(p => p.name === value);
+      updated[index].projectName = value;
+      if (selectedProj) {
+        updated[index].projectAddress = selectedProj.address;
+      }
+    } else {
+      updated[index] = {
+        ...updated[index],
+        [field]: value
+      };
+    }
+    setManualRows(updated);
+  };
+
+  const handleDownloadCSVTemplate = () => {
+    const headers = ['Name', 'Mobile', 'NID', 'ProjectName', 'PlotNo', 'PlotSize', 'PricePerDecimal', 'TotalPaid'];
+    const exampleRow = ['MD ZAHIDUL ISLAM', '01300801641', '8671689449', projects[0]?.name || 'Green Forest Housing', 'A-12', '5.5', '200000', '150000'];
+    exportToCSV(headers, [exampleRow], 'Customer_Import_Template');
+  };
+
+  const getSequentialIds = () => {
+    const ids: string[] = [];
+    const existingIds = [...customers.map(c => c.customerId)];
+    for (let i = 0; i < manualRows.length; i++) {
+      const nextId = generateCustomerId(existingIds);
+      ids.push(nextId);
+      existingIds.push(nextId);
+    }
+    return ids;
+  };
+
+  const handleBulkImportSave = () => {
+    if (manualRows.length === 0) {
+      alert('অনুগ্রহ করে অন্তত একটি গ্রাহকের তথ্য প্রদান করুন!');
+      return;
+    }
+    
+    // Validate rows
+    for (let i = 0; i < manualRows.length; i++) {
+      const row = manualRows[i];
+      if (!row.name.trim()) {
+        alert(`গ্রাহক নম্বর ${i+1} এ নাম প্রদান করুন!`);
+        return;
+      }
+      if (!row.mobile.trim()) {
+        alert(`গ্রাহক নম্বর ${i+1} এ মোবাইল নম্বর প্রদান করুন!`);
+        return;
+      }
+      if (row.plotSize <= 0) {
+        alert(`গ্রাহক নম্বর ${i+1} এ প্লটের আকার ০ এর বেশি হতে হবে!`);
+        return;
+      }
+      if (row.pricePerDecimal <= 0) {
+        alert(`গ্রাহক নম্বর ${i+1} এ প্রতি শতাংশ মূল্য ০ এর বেশি হতে হবে!`);
+        return;
+      }
+    }
+
+    const seqIds = getSequentialIds();
+    
+    manualRows.forEach((row, idx) => {
+      const custId = seqIds[idx];
+      const newCustomer: Customer = {
+        id: 'CUST-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+        customerId: custId,
+        name: row.name.trim(),
+        mobile: row.mobile.trim(),
+        nid: row.nid.trim(),
+        projectName: row.projectName,
+        projectAddress: row.projectAddress,
+        plotNo: row.plotNo.trim(),
+        plotSize: row.plotSize,
+        pricePerDecimal: row.pricePerDecimal,
+        totalPrice: row.plotSize * row.pricePerDecimal,
+        createdAt: new Date().toISOString(),
+        registrationNote: ''
+      };
+
+      let initialPayment: Payment | undefined = undefined;
+      if (row.totalPaid > 0) {
+        initialPayment = {
+          id: 'PAY-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+          customerId: custId,
+          amount: row.totalPaid,
+          date: new Date().toISOString().split('T')[0],
+          type: row.totalPaid >= newCustomer.totalPrice ? 'Total Payment' : 'Previous Payment',
+          receiptNo: 'REC-' + Math.floor(100000 + Math.random() * 900000),
+          paymentMethod: 'Cash',
+          remarks: 'পূর্ববর্তী হিসাব থেকে ম্যানুয়াল এন্ট্রি কৃত পেমেন্ট'
+        };
+      }
+
+      onAddCustomer(newCustomer, initialPayment);
+    });
+
+    setIsImportModalOpen(false);
+    setManualRows([]);
+    alert('সবগুলো কাস্টমার সফলভাবে ইম্পোর্ট করা হয়েছে!');
+  };
+
+  const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      if (!text) return;
+      const lines = text.split(/\r?\n/);
+      const parsedRows: ManualImportRow[] = [];
+      // Skip header line
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        // Split respecting double quotes
+        const cells: string[] = [];
+        let currentCell = '';
+        let insideQuote = false;
+        for (let j = 0; j < line.length; j++) {
+          const char = line[j];
+          if (char === '"') {
+            insideQuote = !insideQuote;
+          } else if (char === ',' && !insideQuote) {
+            cells.push(currentCell.trim());
+            currentCell = '';
+          } else {
+            currentCell += char;
+          }
+        }
+        cells.push(currentCell.trim());
+
+        if (cells.length >= 1 && cells[0]) {
+          parsedRows.push({
+            name: cells[0] || '',
+            mobile: cells[1] || '',
+            nid: cells[2] || '',
+            projectName: cells[3] || projects[0]?.name || '',
+            projectAddress: cells[4] || projects[0]?.address || '',
+            plotNo: cells[5] || '',
+            plotSize: parseFloat(cells[6]) || 0,
+            pricePerDecimal: parseFloat(cells[7]) || 0,
+            totalPaid: parseFloat(cells[8]) || 0,
+          });
+        }
+      }
+      if (parsedRows.length > 0) {
+        setManualRows([...manualRows.filter(r => r.name.trim() !== ''), ...parsedRows]);
+      } else {
+        alert('সিএসভি ফাইলে কোনো বৈধ তথ্য পাওয়া যায়নি!');
+      }
+    };
+    reader.readAsText(file);
+  };
 
   // Sync total price when plotSize or pricePerDecimal changes
   useEffect(() => {
@@ -281,13 +495,22 @@ export default function CustomerCRUD({
           <h2 className="text-xl font-serif font-bold text-natural-text">গ্রাহক ব্যবস্থাপনা (Customer Management)</h2>
           <p className="text-xs text-natural-muted mt-1">সব কাস্টমারদের প্রোফাইল ডাটাবেজ, প্লট বিবরণ এবং বকেয়া ট্র্যাকিং করুন।</p>
         </div>
-        <button
-          onClick={handleOpenAddModal}
-          className="bg-natural-primary hover:bg-natural-primary-hover text-white font-bold text-xs px-5 py-3 rounded-xl transition-all shadow flex items-center gap-2 cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          নতুন গ্রাহক যুক্ত করুন
-        </button>
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={handleOpenImportModal}
+            className="bg-[#EBE7E0]/50 hover:bg-[#EBE7E0] border border-natural-border hover:border-natural-primary text-natural-text font-bold text-xs px-4 py-3 rounded-xl transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            পুরাতন গ্রাহক ইম্পোর্ট
+          </button>
+          <button
+            onClick={handleOpenAddModal}
+            className="bg-natural-primary hover:bg-natural-primary-hover text-white font-bold text-xs px-5 py-3 rounded-xl transition-all shadow flex items-center gap-2 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            নতুন গ্রাহক যুক্ত করুন
+          </button>
+        </div>
       </div>
 
       {/* Filter and Table Container */}
@@ -509,7 +732,7 @@ export default function CustomerCRUD({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-natural-muted font-bold">প্লট নম্বর (Plot No)</label>
+                  <label className="text-natural-muted font-bold">প্লট নম্বর / রোড নম্বর (Plot No / Road No)</label>
                   <input
                     type="text"
                     placeholder="যেমন: বি-৪৫ (B-45)"
@@ -556,15 +779,24 @@ export default function CustomerCRUD({
                 </div>
 
                 <div className="space-y-1 sm:col-span-2">
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-1.5 mb-1">
                     <label className="text-natural-muted font-bold">রেজিস্ট্রিকৃত নোট / Handover Registry Note (ঐচ্ছিক)</label>
-                    <button
-                      type="button"
-                      onClick={() => setRegistrationNote(`I the below undersigned on behalf of A.R. Properties and Developers in here by received all payment and handed over the plot at ${new Date().toLocaleDateString('en-GB')} with 7172/${new Date().getFullYear()} no. Kabala Registry Deed. Thanks for being with us, wish you all the best.`)}
-                      className="text-[10px] text-natural-primary font-bold hover:underline cursor-pointer flex items-center gap-1"
-                    >
-                      + রেজিস্ট্রি ডেমো নোট লোড করুন
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setRegistrationNote(`I the below undersigned on behalf of A.R. Properties and Developers in here by received all payment and handed over the plot at ${new Date().toLocaleDateString('en-GB')} with 7172/${new Date().getFullYear()} no. Kabala Registry Deed. Thanks for being with us, wish you all the best.`)}
+                        className="text-[10px] bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 font-bold px-2 py-1 rounded-lg cursor-pointer transition-colors"
+                      >
+                        + রেজিস্ট্রি ডেমো নোট
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRegistrationNote(`I the below undersigned on behalf of A.R. Properties and Developers in here by acknowledged the above payment schedule and also confirmed the balance money will be paid by mentioned customer when plot is ready as per company's norms.`)}
+                        className="text-[10px] bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 font-bold px-2 py-1 rounded-lg cursor-pointer transition-colors"
+                      >
+                        + নন-রেজিস্ট্রি ডেমো নোট
+                      </button>
+                    </div>
                   </div>
                   <textarea
                     rows={3}
@@ -760,7 +992,7 @@ export default function CustomerCRUD({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-natural-muted font-bold">প্লট নম্বর (Plot No)</label>
+                  <label className="text-natural-muted font-bold">প্লট নম্বর / রোড নম্বর (Plot No / Road No)</label>
                   <input
                     type="text"
                     value={plotNo}
@@ -803,15 +1035,24 @@ export default function CustomerCRUD({
                 </div>
 
                 <div className="space-y-1 sm:col-span-2">
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-1.5 mb-1">
                     <label className="text-natural-muted font-bold">রেজিস্ট্রিকৃত নোট / Handover Registry Note (ঐচ্ছিক)</label>
-                    <button
-                      type="button"
-                      onClick={() => setRegistrationNote(`I the below undersigned on behalf of A.R. Properties and Developers in here by received all payment and handed over the plot at ${new Date().toLocaleDateString('en-GB')} with 7172/${new Date().getFullYear()} no. Kabala Registry Deed. Thanks for being with us, wish you all the best.`)}
-                      className="text-[10px] text-natural-primary font-bold hover:underline cursor-pointer flex items-center gap-1"
-                    >
-                      + রেজিস্ট্রি ডেমো নোট লোড করুন
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setRegistrationNote(`I the below undersigned on behalf of A.R. Properties and Developers in here by received all payment and handed over the plot at ${new Date().toLocaleDateString('en-GB')} with 7172/${new Date().getFullYear()} no. Kabala Registry Deed. Thanks for being with us, wish you all the best.`)}
+                        className="text-[10px] bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 font-bold px-2 py-1 rounded-lg cursor-pointer transition-colors"
+                      >
+                        + রেজিস্ট্রি ডেমো নোট
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRegistrationNote(`I the below undersigned on behalf of A.R. Properties and Developers in here by acknowledged the above payment schedule and also confirmed the balance money will be paid by mentioned customer when plot is ready as per company's norms.`)}
+                        className="text-[10px] bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 font-bold px-2 py-1 rounded-lg cursor-pointer transition-colors"
+                      >
+                        + নন-রেজিস্ট্রি ডেমো নোট
+                      </button>
+                    </div>
                   </div>
                   <textarea
                     rows={3}
@@ -878,6 +1119,231 @@ export default function CustomerCRUD({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================== */}
+      {/* BULK IMPORT CUSTOMERS MODAL    */}
+      {/* ============================== */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 bg-natural-text/40 backdrop-blur-sm z-50 overflow-y-auto flex justify-center items-center py-6 px-4">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-6xl border border-natural-border overflow-hidden flex flex-col my-auto max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="bg-natural-sidebar border-b border-natural-border px-6 py-4 flex items-center justify-between shrink-0">
+              <div>
+                <h3 className="text-base font-serif font-bold text-natural-text">পুরাতন গ্রাহক বাল্ক ইম্পোর্ট (Legacy Customers Import)</h3>
+                <p className="text-[11px] text-natural-muted mt-0.5">ম্যানুয়ালি ডাটা এন্ট্রি করুন অথবা এক্সেল/সিএসভি ফাইল আপলোড করে একবারে অনেক কাস্টমার যুক্ত করুন।</p>
+              </div>
+              <button
+                onClick={() => setIsImportModalOpen(false)}
+                className="text-natural-muted hover:text-natural-text p-1.5 rounded-lg hover:bg-[#EBE7E0]/40 transition-all cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Actions / Upload Area */}
+            <div className="p-6 bg-natural-sidebar/20 border-b border-natural-border/60 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer flex items-center gap-2 transition-colors">
+                  <FileSpreadsheet className="w-4 h-4" />
+                  এক্সেল / সিএসভি ফাইল সিলেক্ট করুন
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleCSVUpload}
+                    className="hidden"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={handleDownloadCSVTemplate}
+                  className="bg-natural-sidebar hover:bg-[#EBE7E0]/60 border border-natural-border text-natural-muted hover:text-natural-text text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  টেমপ্লেট ডাউনলোড করুন (Download CSV)
+                </button>
+              </div>
+              <div className="text-[11px] text-natural-muted italic font-medium">
+                * সিএসভি আপলোড করলে নিচের টেবিলে তথ্যগুলো এসে জমা হবে, আপনি দেখে সেভ করতে পারবেন।
+              </div>
+            </div>
+
+            {/* Modal Body - Scrollable Table Area */}
+            <div className="flex-1 overflow-auto p-6 min-h-[250px]">
+              {manualRows.length === 0 ? (
+                <div className="text-center py-12 space-y-3">
+                  <p className="text-sm text-natural-muted font-semibold">টেবিলে কোনো কাস্টমার এন্ট্রি নেই।</p>
+                  <button
+                    type="button"
+                    onClick={handleAddImportRow}
+                    className="bg-natural-primary text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-natural-primary-hover transition-all cursor-pointer"
+                  >
+                    + নতুন একটি এন্ট্রি যোগ করুন
+                  </button>
+                </div>
+              ) : (
+                <div className="border border-natural-border rounded-2xl overflow-hidden shadow-sm bg-white min-w-[1000px]">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-natural-sidebar text-natural-muted font-bold uppercase tracking-wider text-[10px] border-b border-natural-border">
+                        <th className="p-3 w-28">গ্রাহক আইডি (ID)</th>
+                        <th className="p-3 min-w-[160px]">গ্রাহকের নাম (Name) *</th>
+                        <th className="p-3 min-w-[130px]">মোবাইল (Mobile) *</th>
+                        <th className="p-3 min-w-[120px]">এনআইডি (NID)</th>
+                        <th className="p-3 min-w-[180px]">প্রকল্প (Project)</th>
+                        <th className="p-3 min-w-[110px]">প্লট/রোড নং *</th>
+                        <th className="p-3 w-24">আকার (শতাংশ) *</th>
+                        <th className="p-3 w-28">মূল্য / শতাংশ *</th>
+                        <th className="p-3 w-28 text-right">মোট মূল্য (চুক্তি)</th>
+                        <th className="p-3 w-28 text-right">পূর্ব পরিশোধ (Paid)</th>
+                        <th className="p-3 w-12 text-center">মুছুন</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-natural-border/55">
+                      {manualRows.map((row, idx) => {
+                        const seqIds = getSequentialIds();
+                        const assignedId = seqIds[idx];
+                        const rowTotal = row.plotSize * row.pricePerDecimal;
+                        
+                        return (
+                          <tr key={idx} className="hover:bg-natural-sidebar/20 transition-all font-semibold text-natural-text">
+                            <td className="p-3">
+                              <span className="font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/50 px-2 py-1 rounded text-[10px]">
+                                {assignedId}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <input
+                                type="text"
+                                value={row.name}
+                                placeholder="যেমন: জাহিদুল ইসলাম"
+                                onChange={(e) => handleUpdateImportRow(idx, 'name', e.target.value)}
+                                className="w-full bg-transparent border border-natural-border/40 focus:border-natural-primary focus:bg-white rounded-lg px-2.5 py-1.5 outline-none font-medium text-xs text-natural-text"
+                              />
+                            </td>
+                            <td className="p-3">
+                              <input
+                                type="text"
+                                value={row.mobile}
+                                placeholder="যেমন: 01300801641"
+                                onChange={(e) => handleUpdateImportRow(idx, 'mobile', e.target.value)}
+                                className="w-full bg-transparent border border-natural-border/40 focus:border-natural-primary focus:bg-white rounded-lg px-2.5 py-1.5 outline-none font-mono text-xs text-natural-text"
+                              />
+                            </td>
+                            <td className="p-3">
+                              <input
+                                type="text"
+                                value={row.nid}
+                                placeholder="এনআইডি নং"
+                                onChange={(e) => handleUpdateImportRow(idx, 'nid', e.target.value)}
+                                className="w-full bg-transparent border border-natural-border/40 focus:border-natural-primary focus:bg-white rounded-lg px-2.5 py-1.5 outline-none font-mono text-xs text-natural-text"
+                              />
+                            </td>
+                            <td className="p-3">
+                              <select
+                                value={row.projectName}
+                                onChange={(e) => handleUpdateImportRow(idx, 'projectName', e.target.value)}
+                                className="w-full bg-transparent border border-natural-border/40 focus:border-natural-primary focus:bg-white rounded-lg px-2 py-1.5 outline-none font-medium text-xs text-natural-muted"
+                              >
+                                {projects.map(p => (
+                                  <option key={p.id} value={p.name}>{p.name}</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="p-3">
+                              <input
+                                type="text"
+                                value={row.plotNo}
+                                placeholder="যেমন: বি-১২"
+                                onChange={(e) => handleUpdateImportRow(idx, 'plotNo', e.target.value)}
+                                className="w-full bg-transparent border border-natural-border/40 focus:border-natural-primary focus:bg-white rounded-lg px-2.5 py-1.5 outline-none font-medium text-xs text-natural-text"
+                              />
+                            </td>
+                            <td className="p-3">
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={row.plotSize || ''}
+                                placeholder="৩.৯২"
+                                onChange={(e) => handleUpdateImportRow(idx, 'plotSize', Math.max(0, parseFloat(e.target.value) || 0))}
+                                className="w-full bg-transparent border border-natural-border/40 focus:border-natural-primary focus:bg-white rounded-lg px-2 py-1.5 outline-none font-mono text-xs text-natural-text"
+                              />
+                            </td>
+                            <td className="p-3">
+                              <input
+                                type="number"
+                                value={row.pricePerDecimal || ''}
+                                placeholder="৩০০০০০"
+                                onChange={(e) => handleUpdateImportRow(idx, 'pricePerDecimal', Math.max(0, parseInt(e.target.value) || 0))}
+                                className="w-full bg-transparent border border-natural-border/40 focus:border-natural-primary focus:bg-white rounded-lg px-2 py-1.5 outline-none font-mono text-xs text-natural-text"
+                              />
+                            </td>
+                            <td className="p-3 text-right">
+                              <span className="font-mono text-xs font-bold text-natural-muted px-1.5">
+                                ৳ {rowTotal.toLocaleString('en-IN')}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <input
+                                type="number"
+                                value={row.totalPaid || ''}
+                                placeholder="যেমন: ৫০০০০"
+                                onChange={(e) => handleUpdateImportRow(idx, 'totalPaid', Math.max(0, parseInt(e.target.value) || 0))}
+                                className="w-full bg-transparent border border-natural-border/40 focus:border-natural-primary focus:bg-white rounded-lg px-2 py-1.5 outline-none font-mono text-xs text-emerald-700 font-bold text-right"
+                              />
+                            </td>
+                            <td className="p-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveImportRow(idx)}
+                                className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-1 rounded-lg transition-all cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-natural-sidebar border-t border-natural-border px-6 py-4 flex items-center justify-between shrink-0">
+              <button
+                type="button"
+                onClick={handleAddImportRow}
+                className="bg-[#EBE7E0]/60 hover:bg-[#EBE7E0] text-natural-text border border-natural-border text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                টেবিলে আরও এক জন যোগ করুন
+              </button>
+              
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsImportModalOpen(false);
+                    setManualRows([]);
+                  }}
+                  className="bg-white hover:bg-natural-sidebar border border-natural-border text-natural-muted hover:text-natural-text text-xs font-bold px-5 py-2.5 rounded-xl transition-all cursor-pointer"
+                >
+                  বাতিল করুন
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkImportSave}
+                  className="bg-natural-primary hover:bg-natural-primary-hover text-white text-xs font-bold px-6 py-2.5 rounded-xl transition-all shadow flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Save className="w-4 h-4" />
+                  সবগুলো ডাটা ইম্পোর্ট করুন ({manualRows.length} জন)
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
