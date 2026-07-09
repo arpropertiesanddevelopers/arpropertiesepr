@@ -43,6 +43,33 @@ export default function App() {
   const [printCustomer, setPrintCustomer] = useState<Customer | null>(null);
   const [printPayment, setPrintPayment] = useState<Payment | null>(null);
 
+  // Live Bangladesh Clock
+  const [currentDateText, setCurrentDateText] = useState('');
+
+  useEffect(() => {
+    const updateClock = () => {
+      try {
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Asia/Dhaka',
+          year: 'numeric',
+          month: 'long',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        });
+        setCurrentDateText(formatter.format(now));
+      } catch (err) {
+        setCurrentDateText(new Date().toLocaleString());
+      }
+    };
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   // --- Load Initial State from LocalStorage or Defaults ---
   useEffect(() => {
     try {
@@ -349,7 +376,7 @@ export default function App() {
             {/* Local Clock */}
             <div className="flex items-center gap-1.5 text-natural-muted font-medium">
               <CalendarDays className="w-4 h-4 text-natural-primary" />
-              <span className="font-mono text-natural-text">July 07, 2026</span>
+              <span className="font-mono text-natural-text text-[11px] sm:text-xs">{currentDateText || 'Loading...'}</span>
             </div>
           </div>
         </header>

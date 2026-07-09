@@ -369,8 +369,8 @@ export default function PaymentCRUD({
       {/* ADD PAYMENT MODAL              */}
       {/* ============================== */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 bg-natural-text/40 backdrop-blur-sm z-50 overflow-y-auto flex justify-center items-center px-4">
-          <div className="bg-white rounded-3xl shadow-xl max-w-md w-full border border-natural-border overflow-hidden">
+        <div className="fixed inset-0 bg-natural-text/40 backdrop-blur-sm z-50 overflow-y-auto flex justify-center items-start py-6 sm:py-12 px-4">
+          <div className="bg-white rounded-3xl shadow-xl max-w-md w-full border border-natural-border overflow-hidden my-auto">
             <div className="bg-natural-sidebar border-b border-natural-border px-6 py-4 flex items-center justify-between">
               <h3 className="text-base font-serif font-bold text-natural-text">পেমেন্ট এন্ট্রি ফরম (Add Payment)</h3>
               <button
@@ -505,8 +505,8 @@ export default function PaymentCRUD({
       {/* EDIT PAYMENT MODAL             */}
       {/* ============================== */}
       {isEditModalOpen && (
-        <div className="fixed inset-0 bg-natural-text/40 backdrop-blur-sm z-50 overflow-y-auto flex justify-center items-center px-4">
-          <div className="bg-white rounded-3xl shadow-xl max-w-md w-full border border-natural-border overflow-hidden">
+        <div className="fixed inset-0 bg-natural-text/40 backdrop-blur-sm z-50 overflow-y-auto flex justify-center items-start py-6 sm:py-12 px-4">
+          <div className="bg-white rounded-3xl shadow-xl max-w-md w-full border border-natural-border overflow-hidden my-auto">
             <div className="bg-natural-sidebar border-b border-natural-border px-6 py-4 flex items-center justify-between">
               <h3 className="text-base font-serif font-bold text-natural-text">পেমেন্ট রেকর্ড সংশোধন (Edit Payment)</h3>
               <button
@@ -634,8 +634,8 @@ export default function PaymentCRUD({
       {/* DELETE PAYMENT MODAL           */}
       {/* ============================== */}
       {isDeleteModalOpen && (
-        <div className="fixed inset-0 bg-natural-text/40 backdrop-blur-sm z-50 overflow-y-auto flex justify-center items-center px-4">
-          <div className="bg-white rounded-3xl shadow-xl max-w-md w-full border border-natural-border overflow-hidden">
+        <div className="fixed inset-0 bg-natural-text/40 backdrop-blur-sm z-50 overflow-y-auto flex justify-center items-start py-6 sm:py-12 px-4">
+          <div className="bg-white rounded-3xl shadow-xl max-w-md w-full border border-natural-border overflow-hidden my-auto">
             <div className="p-6 text-center space-y-4">
               <div className="w-12 h-12 bg-rose-50 text-rose-700 rounded-full flex items-center justify-center mx-auto border border-rose-100">
                 <AlertTriangle className="w-6 h-6" />
