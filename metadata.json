@@ -1,0 +1,6 @@
+{
+  "name": "AR Property Management & Payment System",
+  "description": "A complete, modern property management and payment tracking web application for real estate companies, featuring customer search, automated billing calculations, A4-ready printable documents, and administrative controls.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

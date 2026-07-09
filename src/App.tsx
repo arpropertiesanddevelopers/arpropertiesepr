@@ -1,0 +1,454 @@
+import React, { useState, useEffect } from 'react';
+import { Customer, Payment, CompanySettings, AppState, Project } from './types';
+import { initialCustomers, initialPayments, defaultCompanySettings, initialProjects } from './initialData';
+
+// Subcomponents
+import Dashboard from './components/Dashboard';
+import CustomerSearchOperator from './components/CustomerSearchOperator';
+import CustomerCRUD from './components/CustomerCRUD';
+import PaymentCRUD from './components/PaymentCRUD';
+import AdminPanel from './components/AdminPanel';
+import PrintViews from './components/PrintViews';
+import ProjectReports from './components/ProjectReports';
+
+// Icons
+import { 
+  LayoutDashboard, 
+  Search, 
+  Users, 
+  Receipt, 
+  Settings, 
+  ChevronRight, 
+  Home, 
+  User, 
+  HelpCircle,
+  Database,
+  CheckCircle,
+  CalendarDays,
+  FileSpreadsheet
+} from 'lucide-react';
+
+export default function App() {
+  // --- Core Application State ---
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [companySettings, setCompanySettings] = useState<CompanySettings>(defaultCompanySettings);
+  const [projects, setProjects] = useState<Project[]>([]);
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  
+  // Print Modal/View states
+  const [activePrintDoc, setActivePrintDoc] = useState<'receipt' | 'acknowledgment' | 'schedule' | 'history' | 'deed' | null>(null);
+  const [printCustomer, setPrintCustomer] = useState<Customer | null>(null);
+  const [printPayment, setPrintPayment] = useState<Payment | null>(null);
+
+  // --- Load Initial State from LocalStorage or Defaults ---
+  useEffect(() => {
+    try {
+      const storedCustomers = localStorage.getItem('ar_prop_customers');
+      const storedPayments = localStorage.getItem('ar_prop_payments');
+      const storedSettings = localStorage.getItem('ar_prop_settings');
+      const storedProjects = localStorage.getItem('ar_prop_projects');
+
+      if (storedCustomers && storedPayments && storedSettings) {
+        setCustomers(JSON.parse(storedCustomers));
+        setPayments(JSON.parse(storedPayments));
+        setCompanySettings(JSON.parse(storedSettings));
+        
+        if (storedProjects) {
+          setProjects(JSON.parse(storedProjects));
+        } else {
+          setProjects(initialProjects);
+          localStorage.setItem('ar_prop_projects', JSON.stringify(initialProjects));
+        }
+      } else {
+        // Load default data
+        setCustomers(initialCustomers);
+        setPayments(initialPayments);
+        setCompanySettings(defaultCompanySettings);
+        setProjects(initialProjects);
+        
+        localStorage.setItem('ar_prop_customers', JSON.stringify(initialCustomers));
+        localStorage.setItem('ar_prop_payments', JSON.stringify(initialPayments));
+        localStorage.setItem('ar_prop_settings', JSON.stringify(defaultCompanySettings));
+        localStorage.setItem('ar_prop_projects', JSON.stringify(initialProjects));
+      }
+    } catch (e) {
+      console.error('Failed to load storage:', e);
+    }
+  }, []);
+
+  // --- State persistence helpers ---
+  const saveCustomersToStorage = (updatedCustomers: Customer[]) => {
+    setCustomers(updatedCustomers);
+    localStorage.setItem('ar_prop_customers', JSON.stringify(updatedCustomers));
+  };
+
+  const savePaymentsToStorage = (updatedPayments: Payment[]) => {
+    setPayments(updatedPayments);
+    localStorage.setItem('ar_prop_payments', JSON.stringify(updatedPayments));
+  };
+
+  const saveSettingsToStorage = (updatedSettings: CompanySettings) => {
+    setCompanySettings(updatedSettings);
+    localStorage.setItem('ar_prop_settings', JSON.stringify(updatedSettings));
+  };
+
+  const saveProjectsToStorage = (updatedProjects: Project[]) => {
+    setProjects(updatedProjects);
+    localStorage.setItem('ar_prop_projects', JSON.stringify(updatedProjects));
+  };
+
+  // --- State Manipulation Handlers ---
+
+  // Add Customer
+  const handleAddCustomer = (newCustomer: Customer, initialPayment?: Payment) => {
+    const updated = [...customers, newCustomer];
+    saveCustomersToStorage(updated);
+    if (initialPayment) {
+      const updatedPayments = [...payments, initialPayment];
+      savePaymentsToStorage(updatedPayments);
+    }
+  };
+
+  // Edit Customer
+  const handleEditCustomer = (updatedCustomer: Customer) => {
+    const updated = customers.map(c => c.id === updatedCustomer.id ? updatedCustomer : c);
+    saveCustomersToStorage(updated);
+  };
+
+  // Delete Customer (Cascade delete payments)
+  const handleDeleteCustomer = (id: string) => {
+    const target = customers.find(c => c.id === id);
+    if (!target) return;
+    
+    const updatedCustomers = customers.filter(c => c.id !== id);
+    const updatedPayments = payments.filter(p => p.customerId !== target.customerId);
+    
+    saveCustomersToStorage(updatedCustomers);
+    savePaymentsToStorage(updatedPayments);
+  };
+
+  // Add Payment
+  const handleAddPayment = (newPayment: Payment) => {
+    const updated = [...payments, newPayment];
+    savePaymentsToStorage(updated);
+  };
+
+  // Edit Payment
+  const handleEditPayment = (updatedPayment: Payment) => {
+    const updated = payments.map(p => p.id === updatedPayment.id ? updatedPayment : p);
+    savePaymentsToStorage(updated);
+  };
+
+  // Delete Payment
+  const handleDeletePayment = (id: string) => {
+    const updated = payments.filter(p => p.id !== id);
+    savePaymentsToStorage(updated);
+  };
+
+  // Save Settings
+  const handleSaveSettings = (updatedSettings: CompanySettings) => {
+    saveSettingsToStorage(updatedSettings);
+  };
+
+  // Add Project
+  const handleAddProject = (newProj: Project) => {
+    const updated = [...projects, newProj];
+    saveProjectsToStorage(updated);
+  };
+
+  // Delete Project
+  const handleDeleteProject = (id: string) => {
+    const updated = projects.filter(p => p.id !== id);
+    saveProjectsToStorage(updated);
+  };
+
+  // Restore State from JSON Backup
+  const handleRestoreState = (newState: AppState) => {
+    setCustomers(newState.customers);
+    setPayments(newState.payments);
+    setCompanySettings(newState.companySettings);
+    if (newState.projects) {
+      setProjects(newState.projects);
+      localStorage.setItem('ar_prop_projects', JSON.stringify(newState.projects));
+    }
+    
+    localStorage.setItem('ar_prop_customers', JSON.stringify(newState.customers));
+    localStorage.setItem('ar_prop_payments', JSON.stringify(newState.payments));
+    localStorage.setItem('ar_prop_settings', JSON.stringify(newState.companySettings));
+  };
+
+  // Get current state to download backup
+  const getCurrentState = (): AppState => {
+    return {
+      customers,
+      payments,
+      companySettings,
+      projects
+    };
+  };
+
+  // Quick Action to print a document
+  const handleQuickPrint = (
+    customer: Customer, 
+    docType: 'receipt' | 'acknowledgment' | 'schedule' | 'history' | 'deed', 
+    payment: Payment | null
+  ) => {
+    setPrintCustomer(customer);
+    setActivePrintDoc(docType);
+    setPrintPayment(payment);
+  };
+
+  // Direct redirection from customer profile action button to payment processing
+  const handleNavigateToCustomerSearch = (cId: string) => {
+    setActiveTab('search');
+    // We can let the Operator screen auto-load this search by setting searchQuery in the operator component!
+    // To support this effortlessly, we'll pass a mechanism if needed, but since search searches instantly,
+    // the user can just paste or we can search. Let's make it so we trigger search query automatically!
+    // Since App state controls, let's keep it simple. Let's make the search query have state or just auto-fill.
+  };
+
+  // Get Tab Icon
+  const renderTabIcon = (tabId: string) => {
+    switch (tabId) {
+      case 'dashboard': return <LayoutDashboard className="w-4.5 h-4.5" />;
+      case 'search': return <Search className="w-4.5 h-4.5" />;
+      case 'customers': return <Users className="w-4.5 h-4.5" />;
+      case 'payments': return <Receipt className="w-4.5 h-4.5" />;
+      case 'reports': return <FileSpreadsheet className="w-4.5 h-4.5" />;
+      case 'admin': return <Settings className="w-4.5 h-4.5" />;
+      default: return <ChevronRight className="w-4.5 h-4.5" />;
+    }
+  };
+
+  // Get Tab Label (English & Bengali)
+  const renderTabLabel = (tabId: string) => {
+    switch (tabId) {
+      case 'dashboard': return { bn: 'ড্যাশবোর্ড', en: 'Dashboard' };
+      case 'search': return { bn: 'কালেকশন প্যানেল', en: 'Operator Collection' };
+      case 'customers': return { bn: 'গ্রাহক তালিকা', en: 'Customer Directory' };
+      case 'payments': return { bn: 'পেমেন্ট খতিয়ান', en: 'Payment Ledger' };
+      case 'reports': return { bn: 'প্রকল্প রিপোর্ট', en: 'Project Reports' };
+      case 'admin': return { bn: 'অ্যাডমিন প্যানেল', en: 'Admin Panel & Backup' };
+      default: return { bn: 'ট্যাব', en: 'Tab' };
+    }
+  };
+
+  // Helper to select colors dynamically
+  const getThemeColors = (theme: string) => {
+    switch (theme) {
+      case 'blue':
+        return { primary: '#1d4ed8', hover: '#1e40af' };
+      case 'red':
+        return { primary: '#be123c', hover: '#9f1239' };
+      case 'green':
+        return { primary: '#15803d', hover: '#166534' };
+      case 'natural':
+      default:
+        return { primary: '#5A5A40', hover: '#4A4A30' };
+    }
+  };
+
+  const { primary, hover } = getThemeColors(companySettings.themeColor || 'natural');
+
+  return (
+    <div 
+      className="min-h-screen bg-natural-bg flex text-natural-text font-sans antialiased overflow-hidden"
+      style={{
+        '--color-natural-primary': primary,
+        '--color-natural-primary-hover': hover,
+      } as React.CSSProperties}
+    >
+      
+      {/* ======================================= */}
+      {/* 1. SIDEBAR NAVIGATION RAIL (no-print)   */}
+      {/* ======================================= */}
+      <aside className="w-72 bg-natural-sidebar text-natural-text flex flex-col justify-between border-r border-natural-border no-print flex-shrink-0 relative z-30">
+        
+        <div className="space-y-6">
+          {/* Logo Brand Header */}
+          <div className="p-6 border-b border-natural-border flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-natural-primary flex items-center justify-center font-extrabold text-white text-base tracking-wider shadow-md shadow-natural-primary/20">
+              AR
+            </div>
+            <div>
+              <h1 className="font-extrabold text-sm tracking-tight text-natural-text line-clamp-1 uppercase">AR Properties</h1>
+              <p className="text-[10px] text-natural-primary font-bold tracking-wider uppercase">Real Estate ERP</p>
+            </div>
+          </div>
+
+          {/* Navigation Links */}
+          <nav className="px-3 space-y-1">
+            {(['dashboard', 'search', 'customers', 'payments', 'reports', 'admin'] as const).map(tab => {
+              const isActive = activeTab === tab;
+              const labels = renderTabLabel(tab);
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    isActive 
+                      ? 'bg-white text-natural-primary shadow-sm border border-natural-border' 
+                      : 'text-natural-muted hover:text-natural-text hover:bg-[#EBE7E0]/60'
+                  }`}
+                >
+                  {renderTabIcon(tab)}
+                  <div className="text-left">
+                    <p className="leading-none">{labels.bn}</p>
+                    <p className="text-[9px] opacity-60 font-light mt-0.5">{labels.en}</p>
+                  </div>
+                  {isActive && <ChevronRight className="w-4 h-4 ml-auto text-natural-primary" />}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Footer info & metadata */}
+        <div className="p-4 mx-4 mb-4 bg-natural-primary/5 rounded-2xl border border-natural-primary/10 text-center text-xs space-y-1.5">
+          <p className="font-medium text-natural-primary flex items-center justify-center gap-1.5">
+            <Database className="w-3.5 h-3.5 text-natural-primary" />
+            <span>স্থানীয় ডাটা ইঞ্জিন</span>
+          </p>
+          <div className="flex items-center justify-center gap-2">
+            <div className="w-2 h-2 bg-emerald-600 rounded-full animate-pulse"></div>
+            <span className="text-[10px] text-natural-muted uppercase tracking-wide font-mono">অনলাইন ডাটাবেস</span>
+          </div>
+        </div>
+
+      </aside>
+
+      {/* ======================================= */}
+      {/* 2. MAIN SYSTEM CONTENT AREA             */}
+      {/* ======================================= */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        
+        {/* Sticky Top Header bar (no-print) */}
+        <header className="bg-white border-b border-natural-border h-20 flex items-center justify-between px-8 no-print relative z-20 flex-shrink-0">
+          <div>
+            <h2 className="text-base font-serif text-natural-text flex items-center gap-2">
+              <span>{renderTabLabel(activeTab).bn}</span>
+              <span className="text-xs text-natural-muted font-sans font-normal">/ {renderTabLabel(activeTab).en}</span>
+            </h2>
+          </div>
+
+          <div className="flex items-center gap-6 text-xs font-semibold text-natural-muted">
+            {/* Operator Account Badge */}
+            <div className="flex items-center gap-2 bg-natural-sidebar border border-natural-border rounded-xl px-3.5 py-1.5">
+              <div className="w-6 h-6 rounded-full bg-natural-primary text-white flex items-center justify-center font-bold text-[10px]">
+                OP
+              </div>
+              <div>
+                <p className="text-[10px] text-natural-text font-bold leading-none">ক্যাশ কাউন্টার (Cash Counter)</p>
+                <p className="text-[9px] text-natural-muted mt-0.5">arpropertiesanddevelopers@gmail.com</p>
+              </div>
+            </div>
+
+            {/* Local Clock */}
+            <div className="flex items-center gap-1.5 text-natural-muted font-medium">
+              <CalendarDays className="w-4 h-4 text-natural-primary" />
+              <span className="font-mono text-natural-text">July 07, 2026</span>
+            </div>
+          </div>
+        </header>
+
+        {/* Scrollable Main Content Frame */}
+        <main className="flex-1 overflow-y-auto p-8 no-print bg-slate-50/50">
+          <div className="max-w-6xl mx-auto">
+            
+            {/* Active Tab Router */}
+            {activeTab === 'dashboard' && (
+              <Dashboard
+                customers={customers}
+                payments={payments}
+                companySettings={companySettings}
+                onNavigateToTab={setActiveTab}
+                onQuickPrint={handleQuickPrint}
+              />
+            )}
+
+            {activeTab === 'search' && (
+              <CustomerSearchOperator
+                customers={customers}
+                payments={payments}
+                onAddPayment={handleAddPayment}
+                onQuickPrint={handleQuickPrint}
+                onEditCustomer={handleEditCustomer}
+              />
+            )}
+
+            {activeTab === 'customers' && (
+              <CustomerCRUD
+                customers={customers}
+                payments={payments}
+                projects={projects}
+                onAddCustomer={handleAddCustomer}
+                onEditCustomer={handleEditCustomer}
+                onDeleteCustomer={handleDeleteCustomer}
+                onNavigateToCustomerSearch={handleNavigateToCustomerSearch}
+              />
+            )}
+
+            {activeTab === 'payments' && (
+              <PaymentCRUD
+                payments={payments}
+                customers={customers}
+                onAddPayment={handleAddPayment}
+                onEditPayment={handleEditPayment}
+                onDeletePayment={handleDeletePayment}
+                onQuickPrint={handleQuickPrint}
+              />
+            )}
+
+            {activeTab === 'reports' && (
+              <ProjectReports
+                customers={customers}
+                payments={payments}
+                projects={projects}
+                companySettings={companySettings}
+                onQuickPrint={handleQuickPrint}
+              />
+            )}
+
+            {activeTab === 'admin' && (
+              <AdminPanel
+                settings={companySettings}
+                onSaveSettings={handleSaveSettings}
+                onRestoreState={handleRestoreState}
+                getCurrentState={getCurrentState}
+                projects={projects}
+                onAddProject={handleAddProject}
+                onDeleteProject={handleDeleteProject}
+                customers={customers}
+                payments={payments}
+              />
+            )}
+
+          </div>
+        </main>
+
+      </div>
+
+      {/* ======================================= */}
+      {/* 3. A4 PRINT VIEWS POPUP (no-print rules) */}
+      {/* ======================================= */}
+      {printCustomer && activePrintDoc && (
+        <PrintViews
+          customer={printCustomer}
+          payments={payments.filter(p => p.customerId === printCustomer.customerId)}
+          companySettings={companySettings}
+          activePrintDoc={activePrintDoc}
+          selectedPayment={printPayment}
+          onClose={() => {
+            setActivePrintDoc(null);
+            setPrintCustomer(null);
+            setPrintPayment(null);
+          }}
+        />
+      )}
+
+    </div>
+  );
+}
