@@ -17,7 +17,10 @@ import {
   RefreshCw,
   ExternalLink,
   FileSpreadsheet,
-  UserCheck
+  UserCheck,
+  ChevronDown,
+  ChevronUp,
+  HelpCircle
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { googleSignIn, logoutUser, syncToGoogleSheets, initAuth } from '../lib/googleSync';
@@ -56,6 +59,7 @@ export default function AdminPanel({
   const [syncStatus, setSyncStatus] = useState('');
   const [syncUrl, setSyncUrl] = useState('');
   const [syncError, setSyncError] = useState('');
+  const [showTroubleshoot, setShowTroubleshoot] = useState(false);
 
   // Listen to Auth State
   useEffect(() => {
@@ -83,7 +87,18 @@ export default function AdminPanel({
       }
     } catch (err: any) {
       console.error(err);
-      setSyncError('গুগল লগইন ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।');
+      const errorCode = err.code || '';
+      let errorMsg = 'গুগল লগইন ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।';
+      if (errorCode === 'auth/unauthorized-domain') {
+        errorMsg = 'গুগল লগইন ব্যর্থ হয়েছে (unauthorized-domain): এই ডোমেইনটি ফায়ারবেস অথরাইজড ডোমেইন (Authorized Domains) তালিকায় যুক্ত করা নেই। দয়া করে ফায়ারবেস কনসোলে আপনার ডোমেইনটি যুক্ত করুন অথবা নিচের ডোমেইন সমাধান গাইডটি পড়ুন।';
+      } else if (errorCode === 'auth/popup-blocked') {
+        errorMsg = 'গুগল লগইন ব্যর্থ হয়েছে (popup-blocked): আপনার ব্রাউজারে পপ-আপ ব্লক করা আছে। অনুগ্রহ করে ব্রাউজার থেকে পপ-আপ এবং রিডাইরেক্ট উইন্ডো এলাও করুন।';
+      } else if (errorCode === 'auth/popup-closed-by-user') {
+        errorMsg = 'গুগল লগইন ব্যর্থ হয়েছে (popup-closed): পপ-আপ উইন্ডোটি আপনি বন্ধ করে দিয়েছেন। অনুগ্রহ করে আবার ট্রাই করুন।';
+      } else if (err.message) {
+        errorMsg = `গুগল লগইন ব্যর্থ হয়েছে: ${err.message} (${errorCode || 'unknown-code'})`;
+      }
+      setSyncError(errorMsg);
     } finally {
       setIsGoogleLoggingIn(false);
     }
@@ -874,6 +889,69 @@ export default function AdminPanel({
                   <span>{syncError}</span>
                 </div>
               )}
+
+              {/* Troubleshooting Guide collapsible */}
+              <div className="border border-natural-border rounded-2xl overflow-hidden bg-slate-50/50">
+                <button
+                  type="button"
+                  onClick={() => setShowTroubleshoot(!showTroubleshoot)}
+                  className="w-full px-5 py-4 flex items-center justify-between text-xs font-bold text-natural-text hover:bg-slate-50 transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <HelpCircle className="w-4.5 h-4.5 text-natural-primary" />
+                    গুগল কানেক্ট হচ্ছে না? ডোমেইন সমাধান ও লগইন গাইড (Google Connection Troubleshooting)
+                  </span>
+                  {showTroubleshoot ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+                {showTroubleshoot && (
+                  <div className="px-5 pb-5 border-t border-natural-border pt-4 text-[11px] text-natural-muted space-y-4">
+                    <div className="bg-amber-50 text-amber-900 p-3.5 rounded-xl border border-amber-100 space-y-1.5 leading-relaxed">
+                      <p className="font-bold flex items-center gap-1.5">
+                        <AlertCircle className="w-4 h-4 text-amber-700 flex-shrink-0" />
+                        প্রধান কারণ: ফায়ারবেস অথরাইজড ডোমেইন (unauthorized-domain)
+                      </p>
+                      <p>
+                        আপনি যখন কাস্টম ডোমেইন (যেমন: <code className="bg-amber-100 px-1 py-0.5 rounded text-[10px] font-mono">arpropertieserp.netlify.app</code>) থেকে লগইন করার চেষ্টা করছেন, ফায়ারবেস সিকিউরিটির জন্য এটি ব্লক করে দেয় যদি না এই ডোমেইনটি অথরাইজড ডোমেইন তালিকায় যুক্ত থাকে।
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <p className="font-bold text-natural-text">সমাধানের পদক্ষেপসমূহ (Steps to Fix):</p>
+                      
+                      <div className="space-y-2 pl-2 border-l-2 border-natural-primary/30">
+                        <p>
+                          <strong>১. ফায়ারবেস কনসোলে ডোমেইনটি যুক্ত করুন (স্থায়ী সমাধান):</strong>
+                        </p>
+                        <ul className="list-decimal pl-5 space-y-1">
+                          <li>আপনার <a href="https://console.firebase.google.com" target="_blank" rel="noreferrer" className="text-natural-primary underline font-bold">Firebase Console</a> এ যান এবং আপনার প্রোজেক্ট (<code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">virtual-glass-13bk6</code>) সিলেক্ট করুন।</li>
+                          <li>বাম পাশের মেনু থেকে <strong>Build &gt; Authentication</strong> এ যান।</li>
+                          <li>উপরের ট্যাব থেকে <strong>Settings</strong> সিলেক্ট করুন।</li>
+                          <li>বাম পাশের সাব-মেনু থেকে <strong>Authorized Domains</strong> এ ক্লিক করুন।</li>
+                          <li><strong>Add Domain</strong> বাটনে ক্লিক করে আপনার কাস্টম ডোমেইনটি (<code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">arpropertieserp.netlify.app</code>) এড করুন।</li>
+                        </ul>
+                      </div>
+
+                      <div className="space-y-2 pl-2 border-l-2 border-natural-primary/30">
+                        <p>
+                          <strong>২. ব্রাউজার পপ-আপ এবং রিডাইরেক্ট এলাও করুন:</strong>
+                        </p>
+                        <p className="pl-2 leading-relaxed">
+                          লগইন বাটনে ক্লিক করলে ব্রাউজারের এড্রেস বারের ডান পাশে একটি পপ-আপ ব্লকার আইকন দেখাতে পারে। সেখানে ক্লিক করে "Always allow popups and redirects from this site" সিলেক্ট করুন।
+                        </p>
+                      </div>
+
+                      <div className="space-y-2 pl-2 border-l-2 border-natural-primary/30">
+                        <p>
+                          <strong>৩. আইফ্রেম (iFrame) সীমাবদ্ধতা এড়াতে নতুন ট্যাবে অ্যাপটি খুলুন:</strong>
+                        </p>
+                        <p className="pl-2 leading-relaxed">
+                          ডেভেলপমেন্ট বা প্রিভিউ চলাকালীন আইফ্রেম ব্লক এড়াতে সরাসরি এই লিংকে ক্লিক করে নতুন ট্যাবে ট্রাই করুন: <a href="https://ais-dev-ls4gayjxukrpy7hnlowcwg-69363354627.asia-southeast1.run.app" target="_blank" rel="noreferrer" className="text-natural-primary underline font-bold">Open App in New Tab</a>।
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Data Schema Map Info */}
               <div className="bg-slate-50 rounded-2xl border border-slate-150 p-5 space-y-3">
