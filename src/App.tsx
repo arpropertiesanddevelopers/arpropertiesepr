@@ -10,6 +10,7 @@ import PaymentCRUD from './components/PaymentCRUD';
 import AdminPanel from './components/AdminPanel';
 import PrintViews from './components/PrintViews';
 import ProjectReports from './components/ProjectReports';
+import LoginScreen from './components/LoginScreen';
 
 // Icons
 import { 
@@ -25,10 +26,66 @@ import {
   Database,
   CheckCircle,
   CalendarDays,
-  FileSpreadsheet
+  FileSpreadsheet,
+  LogOut
 } from 'lucide-react';
 
 export default function App() {
+  // --- Authentication / Security State ---
+  const [authEnabled, setAuthEnabled] = useState<boolean>(() => {
+    const val = localStorage.getItem('ar_prop_auth_enabled');
+    if (val === null) {
+      // Default to enabling security
+      localStorage.setItem('ar_prop_auth_enabled', 'true');
+      return true;
+    }
+    return val === 'true';
+  });
+
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
+    const val = localStorage.getItem('ar_prop_auth_enabled');
+    const isSecured = val === null ? true : val === 'true';
+    if (!isSecured) return true;
+    
+    const sessionLoggedIn = sessionStorage.getItem('ar_prop_is_logged_in') === 'true';
+    const rememberMeLoggedIn = localStorage.getItem('ar_prop_remember_me') === 'true';
+    return sessionLoggedIn || rememberMeLoggedIn;
+  });
+
+  // Track if auth settings change
+  useEffect(() => {
+    const checkAuthStatus = () => {
+      const isSecured = localStorage.getItem('ar_prop_auth_enabled') !== 'false';
+      setAuthEnabled(isSecured);
+      if (!isSecured) {
+        setIsLoggedIn(true);
+      } else {
+        const sessionLoggedIn = sessionStorage.getItem('ar_prop_is_logged_in') === 'true';
+        const rememberMeLoggedIn = localStorage.getItem('ar_prop_remember_me') === 'true';
+        setIsLoggedIn(sessionLoggedIn || rememberMeLoggedIn);
+      }
+    };
+    
+    window.addEventListener('storage', checkAuthStatus);
+    // Custom event listener for local changes within the same window
+    window.addEventListener('auth-settings-changed', checkAuthStatus);
+    
+    return () => {
+      window.removeEventListener('storage', checkAuthStatus);
+      window.removeEventListener('auth-settings-changed', checkAuthStatus);
+    };
+  }, []);
+
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('ar_prop_is_logged_in');
+    localStorage.removeItem('ar_prop_remember_me');
+    setIsLoggedIn(false);
+  };
+
   // --- Core Application State ---
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -280,6 +337,10 @@ export default function App() {
 
   const { primary, hover } = getThemeColors(companySettings.themeColor || 'natural');
 
+  if (!isLoggedIn) {
+    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div 
       className="min-h-screen bg-natural-bg flex text-natural-text font-sans antialiased overflow-hidden"
@@ -361,7 +422,7 @@ export default function App() {
             </h2>
           </div>
 
-          <div className="flex items-center gap-6 text-xs font-semibold text-natural-muted">
+          <div className="flex items-center gap-4 text-xs font-semibold text-natural-muted">
             {/* Operator Account Badge */}
             <div className="flex items-center gap-2 bg-natural-sidebar border border-natural-border rounded-xl px-3.5 py-1.5">
               <div className="w-6 h-6 rounded-full bg-natural-primary text-white flex items-center justify-center font-bold text-[10px]">
@@ -372,6 +433,18 @@ export default function App() {
                 <p className="text-[9px] text-natural-muted mt-0.5">arpropertiesanddevelopers@gmail.com</p>
               </div>
             </div>
+
+            {/* Log Out Button (Only shown if auth is enabled) */}
+            {authEnabled && (
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-3.5 py-2 bg-rose-50/50 hover:bg-rose-50 border border-rose-150 hover:border-rose-200 text-rose-700 hover:text-rose-800 rounded-xl cursor-pointer transition-all duration-200 font-bold text-[10px] tracking-wide"
+                title="লগআউট করুন এবং লক করুন"
+              >
+                <LogOut className="w-3.5 h-3.5 text-rose-600" />
+                <span>লগআউট (Log Out)</span>
+              </button>
+            )}
 
             {/* Local Clock */}
             <div className="flex items-center gap-1.5 text-natural-muted font-medium">

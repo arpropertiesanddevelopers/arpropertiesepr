@@ -20,7 +20,10 @@ import {
   UserCheck,
   ChevronDown,
   ChevronUp,
-  HelpCircle
+  HelpCircle,
+  Lock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { googleSignIn, logoutUser, syncToGoogleSheets, initAuth } from '../lib/googleSync';
@@ -49,7 +52,36 @@ export default function AdminPanel({
   payments
 }: AdminPanelProps) {
   // Admin Tabs
-  const [adminTab, setAdminTab] = useState<'profile' | 'projects' | 'theme' | 'backup' | 'google-sync'>('profile');
+  const [adminTab, setAdminTab] = useState<'profile' | 'projects' | 'theme' | 'backup' | 'google-sync' | 'security'>('profile');
+
+  // Security Settings States
+  const [authEnabled, setAuthEnabled] = useState(() => {
+    return localStorage.getItem('ar_prop_auth_enabled') !== 'false';
+  });
+  const [authUsername, setAuthUsername] = useState(() => {
+    return localStorage.getItem('ar_prop_auth_username') || 'admin';
+  });
+  const [authPassword, setAuthPassword] = useState(() => {
+    return localStorage.getItem('ar_prop_auth_password') || 'admin';
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [securitySaveSuccess, setSecuritySaveSuccess] = useState(false);
+
+  const handleSaveSecuritySettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    localStorage.setItem('ar_prop_auth_enabled', authEnabled ? 'true' : 'false');
+    localStorage.setItem('ar_prop_auth_username', authUsername.trim());
+    localStorage.setItem('ar_prop_auth_password', authPassword);
+    
+    setSecuritySaveSuccess(true);
+    
+    // Dispatch a custom event to update App.tsx auth states immediately
+    window.dispatchEvent(new Event('auth-settings-changed'));
+    
+    setTimeout(() => {
+      setSecuritySaveSuccess(false);
+    }, 3000);
+  };
 
   // Google OAuth & Sync States
   const [googleUser, setGoogleUser] = useState<User | null>(null);
@@ -370,6 +402,18 @@ export default function AdminPanel({
           >
             <Cloud className="w-4 h-4" />
             গুগল ড্রাইভ সিঙ্ক (Sync)
+          </button>
+
+          <button
+            onClick={() => setAdminTab('security')}
+            className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold flex items-center gap-2.5 transition-all cursor-pointer ${
+              adminTab === 'security'
+                ? 'bg-white text-natural-primary shadow-sm border border-natural-border'
+                : 'text-natural-muted hover:text-natural-text hover:bg-[#EBE7E0]/40'
+            }`}
+          >
+            <Lock className="w-4 h-4" />
+            সিস্টেম সিকিউরিটি (Security)
           </button>
         </div>
 
@@ -976,6 +1020,122 @@ export default function AdminPanel({
                     </p>
                   </div>
                 </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* 6. SYSTEM SECURITY TAB */}
+          {adminTab === 'security' && (
+            <div className="space-y-6 animate-fade-in">
+              <div>
+                <h3 className="text-base font-serif font-bold text-natural-text">সিস্টেম সিকিউরিটি ও পাসওয়ার্ড গেটওয়ে</h3>
+                <p className="text-xs text-natural-muted mt-1">
+                  এই প্যানেল থেকে আপনার ERP সিস্টেমের ব্রাউজার লেভেল সিকিউরিটি নিয়ন্ত্রণ করুন।
+                </p>
+              </div>
+
+              <form onSubmit={handleSaveSecuritySettings} className="space-y-5">
+                
+                {/* Security Status Card */}
+                <div className="bg-slate-50/50 rounded-2xl border border-natural-border p-5 space-y-4">
+                  <h4 className="text-xs font-bold text-natural-text">সিকিউরিটি সেটিংস (Security Configuration)</h4>
+                  
+                  <div className="flex items-center justify-between bg-white border border-natural-border rounded-xl p-4">
+                    <div>
+                      <p className="text-xs font-bold text-natural-text">পাসওয়ার্ড গেটওয়ে সক্রিয় করুন</p>
+                      <p className="text-[10px] text-natural-muted mt-0.5">চালু থাকলে যে কোনো ভিজিটরকে সিস্টেম ব্যবহারের পূর্বে লগইন করতে হবে।</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={authEnabled}
+                        onChange={(e) => setAuthEnabled(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-natural-primary"></div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Password Credentials Configuration */}
+                {authEnabled && (
+                  <div className="bg-slate-50/50 rounded-2xl border border-natural-border p-5 space-y-4">
+                    <h4 className="text-xs font-bold text-natural-text">লগইন ক্রেডেনশিয়াল (Login Credentials)</h4>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
+                      
+                      {/* User ID */}
+                      <div className="space-y-1">
+                        <label className="text-natural-muted font-bold">ইউজার আইডি (User ID) *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="ইউজার আইডি লিখুন"
+                          value={authUsername}
+                          onChange={(e) => setAuthUsername(e.target.value)}
+                          className="w-full px-4 py-3 bg-white border border-natural-border rounded-xl text-natural-text text-xs font-medium focus:outline-none focus:ring-1 focus:ring-natural-primary focus:border-natural-primary shadow-sm"
+                        />
+                      </div>
+
+                      {/* Password */}
+                      <div className="space-y-1">
+                        <label className="text-natural-muted font-bold">পাসওয়ার্ড (Password) *</label>
+                        <div className="relative">
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            required
+                            placeholder="পাসওয়ার্ড লিখুন"
+                            value={authPassword}
+                            onChange={(e) => setAuthPassword(e.target.value)}
+                            className="w-full pl-4 pr-10 py-3 bg-white border border-natural-border rounded-xl text-natural-text text-xs font-medium focus:outline-none focus:ring-1 focus:ring-natural-primary focus:border-natural-primary shadow-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-natural-muted hover:text-natural-text transition-colors cursor-pointer"
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                )}
+
+                {/* Submit Action Block */}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="submit"
+                    className="px-6 py-3 bg-[#123C24] hover:bg-[#0B2516] active:bg-[#05140b] text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+                  >
+                    <Save className="w-4 h-4" />
+                    সিকিউরিটি সেটিংস সেভ করুন
+                  </button>
+
+                  {securitySaveSuccess && (
+                    <span className="text-xs font-bold text-emerald-700 flex items-center gap-1.5 animate-fade-in bg-emerald-50 border border-emerald-150 px-3 py-1.5 rounded-lg">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 animate-bounce" />
+                      সেটিংস সফলভাবে সংরক্ষিত হয়েছে!
+                    </span>
+                  )}
+                </div>
+
+              </form>
+
+              {/* Warning/Guide Panel */}
+              <div className="bg-amber-50 text-amber-900 p-4 rounded-2xl border border-amber-100 space-y-1.5 leading-relaxed text-xs">
+                <p className="font-bold flex items-center gap-1.5 text-amber-800">
+                  <AlertCircle className="w-4 h-4 text-amber-700" />
+                  গুরুত্বপূর্ণ নিরাপত্তা নির্দেশাবলী (Security Notice)
+                </p>
+                <p>
+                  ১. এই ইউজার আইডি এবং পাসওয়ার্ডটি মনে রাখা আবশ্যক। আপনি যদি ভুলে যান, তবে ব্রাউজার ডেটা ক্লিয়ার করলে বা ডাটাবেস রিসেট করলে এটি পুনরায় ডিফল্ট ক্রেডেনশিয়াল (<code className="font-mono bg-amber-100 px-1 rounded text-amber-950">admin</code> / <code className="font-mono bg-amber-100 px-1 rounded text-amber-950">admin</code>) এ ফিরে যাবে।
+                </p>
+                <p>
+                  ২. নিরাপত্তা আরও জোরদার করতে অন্তত ৪ অক্ষরের শক্তিশালী পাসওয়ার্ড ব্যবহারের পরামর্শ দেয়া হচ্ছে।
+                </p>
               </div>
 
             </div>
