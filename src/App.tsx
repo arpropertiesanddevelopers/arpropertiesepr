@@ -267,14 +267,14 @@ export default function App() {
   const getThemeColors = (theme: string) => {
     switch (theme) {
       case 'blue':
-        return { primary: '#1d4ed8', hover: '#1e40af' };
+        return { primary: '#1E3A8A', hover: '#111E45' };
       case 'red':
-        return { primary: '#be123c', hover: '#9f1239' };
+        return { primary: '#722F37', hover: '#4E2025' };
       case 'green':
-        return { primary: '#15803d', hover: '#166534' };
+        return { primary: '#0F4C3A', hover: '#092D22' };
       case 'natural':
       default:
-        return { primary: '#5A5A40', hover: '#4A4A30' };
+        return { primary: '#123C24', hover: '#0B2516' }; // Keep deep forest emerald as default for elite eco-housing trust!
     }
   };
 

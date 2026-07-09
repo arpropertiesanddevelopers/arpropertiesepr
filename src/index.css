@@ -6,13 +6,13 @@
   --font-serif: "Playfair Display", "Hind Siliguri", Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
-  --color-natural-bg: #FDFCFB;
-  --color-natural-text: #3D3B3A;
-  --color-natural-sidebar: #F5F2EE;
-  --color-natural-border: #E5E1DA;
-  --color-natural-primary: #5A5A40;
-  --color-natural-primary-hover: #4A4A30;
-  --color-natural-muted: #7A7874;
+  --color-natural-bg: #FCFBF9;
+  --color-natural-text: #1E2220;
+  --color-natural-sidebar: #F4F2EE;
+  --color-natural-border: #E4E0D8;
+  --color-natural-primary: #123C24;
+  --color-natural-primary-hover: #0B2516;
+  --color-natural-muted: #5D615E;
 }
 
 /* Custom CSS for A4 Printable Views */
