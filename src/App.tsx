@@ -141,120 +141,99 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // --- Load Initial State from Firestore Cloud with LocalStorage Fallback ---
+  // --- Load Initial State from LocalStorage/Defaults and Sync with Firestore in Background ---
   useEffect(() => {
     const initializeData = async () => {
-      // Timeout helper to prevent infinite loading on network blocks or database configurations
-      function withTimeout<T>(promise: Promise<T>, ms: number, fallbackValue: T): Promise<T> {
-        return Promise.race([
-          promise,
-          new Promise<T>((resolve) => setTimeout(() => {
-            console.warn(`Firestore operation timed out after ${ms}ms. Using fallback.`);
-            resolve(fallbackValue);
-          }, ms))
-        ]);
+      // 1. First, load from LocalStorage or Defaults IMMEDIATELY to prevent any loading screen delay
+      const storedCustomers = localStorage.getItem('ar_prop_customers');
+      const storedPayments = localStorage.getItem('ar_prop_payments');
+      const storedSettings = localStorage.getItem('ar_prop_settings');
+      const storedProjects = localStorage.getItem('ar_prop_projects');
+
+      let initialCust = initialCustomers;
+      let initialPay = initialPayments;
+      let initialSet = defaultCompanySettings;
+      let initialProj = initialProjects;
+
+      if (storedCustomers && storedPayments && storedSettings) {
+        try {
+          initialCust = JSON.parse(storedCustomers);
+          initialPay = JSON.parse(storedPayments);
+          initialSet = JSON.parse(storedSettings);
+          if (storedProjects) {
+            initialProj = JSON.parse(storedProjects);
+          }
+        } catch (err) {
+          console.error('Failed to parse local storage:', err);
+        }
       }
 
+      // Set state immediately so the app renders without waiting for network or hanging on Firestore
+      setCustomers(initialCust);
+      setPayments(initialPay);
+      setCompanySettings(initialSet);
+      setProjects(initialProj);
+      setLoading(false); // Render immediately!
+
+      // 2. Now, in the background, attempt to sync with Firestore
       try {
-        // Load cloud data in parallel with a 3.5 second timeout to guarantee fast loading
+        // Timeout helper to prevent background hanging
+        function withTimeout<T>(promise: Promise<T>, ms: number, fallbackValue: T): Promise<T> {
+          return Promise.race([
+            promise,
+            new Promise<T>((resolve) => setTimeout(() => resolve(fallbackValue), ms))
+          ]);
+        }
+
+        // Fetch cloud data with a 3.5s timeout safety
         const [dbCustomers, dbPayments, dbProjects, dbSettings] = await Promise.all([
-          withTimeout(getCustomersFromDB(), 3500, []),
-          withTimeout(getPaymentsFromDB(), 3500, []),
-          withTimeout(getProjectsFromDB(), 3500, []),
-          withTimeout(getSettingsFromDB(), 3500, null)
+          withTimeout(getCustomersFromDB(), 3500, null),
+          withTimeout(getPaymentsFromDB(), 3500, null),
+          withTimeout(getProjectsFromDB(), 3500, null),
+          withTimeout(getSettingsFromDB(), 3500, undefined)
         ]);
 
-        // Prioritize Firestore cloud data if present
+        // If any DB helper timed out or returned null/undefined (likely due to offline or unauthorized domain), abort sync
+        if (dbCustomers === null || dbPayments === null || dbProjects === null || dbSettings === undefined) {
+          console.warn('Firestore cloud sync timed out or was blocked. Using LocalStorage mode.');
+          return;
+        }
+
+        // If we got valid data from Firestore
         if (dbCustomers.length > 0 || dbPayments.length > 0 || dbProjects.length > 0 || dbSettings) {
+          // Cloud data exists! Update local state and cache with latest cloud data
           setCustomers(dbCustomers);
           setPayments(dbPayments);
           setProjects(dbProjects);
           if (dbSettings) {
             setCompanySettings(dbSettings);
-          } else {
-            setCompanySettings(defaultCompanySettings);
           }
 
-          // Update local cache
           localStorage.setItem('ar_prop_customers', JSON.stringify(dbCustomers));
           localStorage.setItem('ar_prop_payments', JSON.stringify(dbPayments));
           localStorage.setItem('ar_prop_projects', JSON.stringify(dbProjects));
           if (dbSettings) {
             localStorage.setItem('ar_prop_settings', JSON.stringify(dbSettings));
           }
+          console.log('Successfully synchronized with Firestore cloud database.');
         } else {
-          // Firestore is empty! See if we have local cache to upload (no-loss migration)
-          const storedCustomers = localStorage.getItem('ar_prop_customers');
-          const storedPayments = localStorage.getItem('ar_prop_payments');
-          const storedSettings = localStorage.getItem('ar_prop_settings');
-          const storedProjects = localStorage.getItem('ar_prop_projects');
-
-          let initialCust = initialCustomers;
-          let initialPay = initialPayments;
-          let initialSet = defaultCompanySettings;
-          let initialProj = initialProjects;
-
-          if (storedCustomers && storedPayments && storedSettings) {
-            try {
-              initialCust = JSON.parse(storedCustomers);
-              initialPay = JSON.parse(storedPayments);
-              initialSet = JSON.parse(storedSettings);
-              if (storedProjects) {
-                initialProj = JSON.parse(storedProjects);
-              }
-            } catch (err) {
-              console.error('Failed to parse local storage fallback:', err);
-            }
-          }
-
-          // Set state
-          setCustomers(initialCust);
-          setPayments(initialPay);
-          setCompanySettings(initialSet);
-          setProjects(initialProj);
-
-          // Upload current dataset to Firestore cloud to preserve it forever
-          for (const c of initialCust) {
-            await saveCustomerToDB(c);
-          }
-          for (const p of initialPay) {
-            await savePaymentToDB(p);
-          }
-          for (const pr of initialProj) {
-            await saveProjectToDB(pr);
-          }
-          await saveSettingsToDB(initialSet);
-
-          // Set local storage
-          localStorage.setItem('ar_prop_customers', JSON.stringify(initialCust));
-          localStorage.setItem('ar_prop_payments', JSON.stringify(initialPay));
-          localStorage.setItem('ar_prop_settings', JSON.stringify(initialSet));
-          localStorage.setItem('ar_prop_projects', JSON.stringify(initialProj));
+          // Firestore is empty! We can upload our current state (either local cache or initial defaults)
+          console.log('Firestore is empty. Uploading current dataset to cloud...');
+          
+          // Non-blocking background uploads
+          const uploadPromises = [
+            ...initialCust.map(c => saveCustomerToDB(c)),
+            ...initialPay.map(p => savePaymentToDB(p)),
+            ...initialProj.map(pr => saveProjectToDB(pr)),
+            saveSettingsToDB(initialSet)
+          ];
+          
+          // Execute uploads in background with timeout safety
+          await withTimeout(Promise.all(uploadPromises), 5000, null);
+          console.log('Initial dataset successfully backed up to Firestore cloud.');
         }
-      } catch (error) {
-        console.error('Failed to initialize or sync Firestore database:', error);
-        
-        // Offline Fallback to Local Storage
-        const storedCustomers = localStorage.getItem('ar_prop_customers');
-        const storedPayments = localStorage.getItem('ar_prop_payments');
-        const storedSettings = localStorage.getItem('ar_prop_settings');
-        const storedProjects = localStorage.getItem('ar_prop_projects');
-
-        if (storedCustomers && storedPayments && storedSettings) {
-          setCustomers(JSON.parse(storedCustomers));
-          setPayments(JSON.parse(storedPayments));
-          setCompanySettings(JSON.parse(storedSettings));
-          if (storedProjects) {
-            setProjects(JSON.parse(storedProjects));
-          }
-        } else {
-          setCustomers(initialCustomers);
-          setPayments(initialPayments);
-          setCompanySettings(defaultCompanySettings);
-          setProjects(initialProjects);
-        }
-      } finally {
-        setLoading(false);
+      } catch (cloudError) {
+        console.warn('Firestore cloud sync failed (likely offline or unauthorized domain):', cloudError);
       }
     };
 
