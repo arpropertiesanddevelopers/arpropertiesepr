@@ -1,0 +1,88 @@
+{
+  "entities": {
+    "Customer": {
+      "title": "Customer",
+      "description": "Information about a real estate customer and their plot purchase details.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerId": { "type": "string" },
+        "name": { "type": "string" },
+        "mobile": { "type": "string" },
+        "nid": { "type": "string" },
+        "projectName": { "type": "string" },
+        "projectAddress": { "type": "string" },
+        "plotNo": { "type": "string" },
+        "plotSize": { "type": "number" },
+        "pricePerDecimal": { "type": "number" },
+        "totalPrice": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "registrationNote": { "type": "string" },
+        "deedNo": { "type": "string" },
+        "deedDate": { "type": "string" }
+      },
+      "required": ["id", "customerId", "name", "mobile", "nid", "projectName", "projectAddress", "plotNo", "plotSize", "pricePerDecimal", "totalPrice", "createdAt"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Payment transactions made by customers.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerId": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string" },
+        "type": { "type": "string" },
+        "receiptNo": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "remarks": { "type": "string" }
+      },
+      "required": ["id", "customerId", "amount", "date", "type", "receiptNo", "paymentMethod"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Real estate projects managed by the company.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "address": { "type": "string" }
+      },
+      "required": ["id", "name", "address"]
+    },
+    "CompanySettings": {
+      "title": "CompanySettings",
+      "description": "Company configuration and system parameters.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "slogan": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "website": { "type": "string" },
+        "bankDetails": { "type": "string" },
+        "themeColor": { "type": "string" }
+      },
+      "required": ["name", "slogan", "address", "phone", "email", "website", "bankDetails"]
+    }
+  },
+  "firestore": {
+    "customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Collection of all customers."
+    },
+    "payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Collection of all transactions."
+    },
+    "projects/{projectId}": {
+      "schema": "Project",
+      "description": "Collection of all real estate projects."
+    },
+    "settings/{settingId}": {
+      "schema": "CompanySettings",
+      "description": "System settings configuration."
+    }
+  }
+}

@@ -962,17 +962,35 @@ export default function AdminPanel({
                     <div className="space-y-3">
                       <p className="font-bold text-natural-text">সমাধানের পদক্ষেপসমূহ (Steps to Fix):</p>
                       
+                      <div className="space-y-3 pl-2 border-l-2 border-natural-primary/30">
+                        <p>
+                          <strong>১. শেয়ার্ড লিংক (Shared App URL) ব্যবহার করুন (সবচেয়ে সহজ সমাধান):</strong>
+                        </p>
+                        <p className="pl-2 leading-relaxed">
+                          যেহেতু এই ফায়ারবেস প্রজেক্টটি একটি <strong>AI Studio Starter Tier (ফ্রি ট্রায়াল)</strong> প্রজেক্ট, তাই সিকিউরিটির জন্য গুগল সরাসরি কনসোলে নতুন কোনো ডোমেইন ম্যানুয়ালি এড করার বাটন (<code className="font-mono bg-slate-100 px-1 py-0.5 rounded text-[10px]">Add Domain</code>) হাইড বা নিষ্ক্রিয় করে রাখে।
+                        </p>
+                        <p className="pl-2 leading-relaxed">
+                          তাই Netlify-এর পরিবর্তে গুগল এআই স্টুডিওর দেওয়া আসল <strong>Shared App URL</strong> ব্যবহার করুন। এই লিংকে গুগল কানেক্ট সহ ক্লাউড ডাটাবেস সম্পূর্ণভাবে এবং কোনো ডোমেইন ইরর ছাড়াই নিখুঁতভাবে কাজ করবে:
+                        </p>
+                        <div className="pl-2">
+                          <a 
+                            href="https://ais-pre-ls4gayjxukrpy7hnlowcwg-69363354627.asia-southeast1.run.app" 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            className="bg-natural-primary/10 hover:bg-natural-primary/20 text-natural-primary px-3 py-1.5 rounded-lg font-bold text-[10px] inline-block transition-colors"
+                          >
+                            শেয়ার্ড লিংকে অ্যাপটি ওপেন করুন ↗
+                          </a>
+                        </div>
+                      </div>
+
                       <div className="space-y-2 pl-2 border-l-2 border-natural-primary/30">
                         <p>
-                          <strong>১. ফায়ারবেস কনসোলে ডোমেইনটি যুক্ত করুন (স্থায়ী সমাধান):</strong>
+                          <strong>২. নিজস্ব কাস্টম ফায়ারবেস প্রোজেক্ট ব্যবহার (স্থায়ী সমাধান):</strong>
                         </p>
-                        <ul className="list-decimal pl-5 space-y-1">
-                          <li>আপনার <a href="https://console.firebase.google.com" target="_blank" rel="noreferrer" className="text-natural-primary underline font-bold">Firebase Console</a> এ যান এবং আপনার প্রোজেক্ট (<code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">virtual-glass-13bk6</code>) সিলেক্ট করুন।</li>
-                          <li>বাম পাশের মেনু থেকে <strong>Build &gt; Authentication</strong> এ যান।</li>
-                          <li>উপরের ট্যাব থেকে <strong>Settings</strong> সিলেক্ট করুন।</li>
-                          <li>বাম পাশের সাব-মেনু থেকে <strong>Authorized Domains</strong> এ ক্লিক করুন।</li>
-                          <li><strong>Add Domain</strong> বাটনে ক্লিক করে আপনার কাস্টম ডোমেইনটি (<code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">arpropertieserp.netlify.app</code>) এড করুন।</li>
-                        </ul>
+                        <p className="pl-2 leading-relaxed">
+                          আপনি যদি অবশ্যই নিজস্ব কাস্টম ডোমেইন (যেমন <code className="font-mono bg-slate-100 px-1 py-0.5 rounded text-[10px]">arpropertieserp.netlify.app</code>) ব্যবহার করতে চান, তাহলে আপনাকে আপনার নিজস্ব জিমেইল দিয়ে একটি নতুন ফায়ারবেস প্রোজেক্ট তৈরি করতে হবে এবং সেটিকে "Blaze/Pay-as-you-go" প্ল্যানে রূপান্তর করতে হবে। এরপর আপনার নিজস্ব ফায়ারবেস ক্রেডেনশিয়াল অ্যাপে যুক্ত করলে আপনি স্বাধীনভাবে ডোমেইন এড করার বাটনটি দেখতে পাবেন এবং যেকোনো কাস্টম ডোমেইন যুক্ত করতে পারবেন।
+                        </p>
                       </div>
 
                       <div className="space-y-2 pl-2 border-l-2 border-natural-primary/30">

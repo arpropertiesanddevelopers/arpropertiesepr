@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Customer, Payment, CompanySettings, AppState, Project } from './types';
 import { initialCustomers, initialPayments, defaultCompanySettings, initialProjects } from './initialData';
+import {
+  getCustomersFromDB,
+  saveCustomerToDB,
+  deleteCustomerFromDB,
+  getPaymentsFromDB,
+  savePaymentToDB,
+  deletePaymentFromDB,
+  getProjectsFromDB,
+  saveProjectToDB,
+  deleteProjectFromDB,
+  getSettingsFromDB,
+  saveSettingsToDB
+} from './lib/firebase';
 
 // Subcomponents
 import Dashboard from './components/Dashboard';
@@ -91,6 +104,7 @@ export default function App() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [companySettings, setCompanySettings] = useState<CompanySettings>(defaultCompanySettings);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   
   // Tab state
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -127,40 +141,110 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // --- Load Initial State from LocalStorage or Defaults ---
+  // --- Load Initial State from Firestore Cloud with LocalStorage Fallback ---
   useEffect(() => {
-    try {
-      const storedCustomers = localStorage.getItem('ar_prop_customers');
-      const storedPayments = localStorage.getItem('ar_prop_payments');
-      const storedSettings = localStorage.getItem('ar_prop_settings');
-      const storedProjects = localStorage.getItem('ar_prop_projects');
+    const initializeData = async () => {
+      try {
+        const dbCustomers = await getCustomersFromDB();
+        const dbPayments = await getPaymentsFromDB();
+        const dbProjects = await getProjectsFromDB();
+        const dbSettings = await getSettingsFromDB();
 
-      if (storedCustomers && storedPayments && storedSettings) {
-        setCustomers(JSON.parse(storedCustomers));
-        setPayments(JSON.parse(storedPayments));
-        setCompanySettings(JSON.parse(storedSettings));
-        
-        if (storedProjects) {
-          setProjects(JSON.parse(storedProjects));
+        // Prioritize Firestore cloud data if present
+        if (dbCustomers.length > 0 || dbPayments.length > 0 || dbProjects.length > 0 || dbSettings) {
+          setCustomers(dbCustomers);
+          setPayments(dbPayments);
+          setProjects(dbProjects);
+          if (dbSettings) {
+            setCompanySettings(dbSettings);
+          } else {
+            setCompanySettings(defaultCompanySettings);
+          }
+
+          // Update local cache
+          localStorage.setItem('ar_prop_customers', JSON.stringify(dbCustomers));
+          localStorage.setItem('ar_prop_payments', JSON.stringify(dbPayments));
+          localStorage.setItem('ar_prop_projects', JSON.stringify(dbProjects));
+          if (dbSettings) {
+            localStorage.setItem('ar_prop_settings', JSON.stringify(dbSettings));
+          }
         } else {
-          setProjects(initialProjects);
-          localStorage.setItem('ar_prop_projects', JSON.stringify(initialProjects));
+          // Firestore is empty! See if we have local cache to upload (no-loss migration)
+          const storedCustomers = localStorage.getItem('ar_prop_customers');
+          const storedPayments = localStorage.getItem('ar_prop_payments');
+          const storedSettings = localStorage.getItem('ar_prop_settings');
+          const storedProjects = localStorage.getItem('ar_prop_projects');
+
+          let initialCust = initialCustomers;
+          let initialPay = initialPayments;
+          let initialSet = defaultCompanySettings;
+          let initialProj = initialProjects;
+
+          if (storedCustomers && storedPayments && storedSettings) {
+            try {
+              initialCust = JSON.parse(storedCustomers);
+              initialPay = JSON.parse(storedPayments);
+              initialSet = JSON.parse(storedSettings);
+              if (storedProjects) {
+                initialProj = JSON.parse(storedProjects);
+              }
+            } catch (err) {
+              console.error('Failed to parse local storage fallback:', err);
+            }
+          }
+
+          // Set state
+          setCustomers(initialCust);
+          setPayments(initialPay);
+          setCompanySettings(initialSet);
+          setProjects(initialProj);
+
+          // Upload current dataset to Firestore cloud to preserve it forever
+          for (const c of initialCust) {
+            await saveCustomerToDB(c);
+          }
+          for (const p of initialPay) {
+            await savePaymentToDB(p);
+          }
+          for (const pr of initialProj) {
+            await saveProjectToDB(pr);
+          }
+          await saveSettingsToDB(initialSet);
+
+          // Set local storage
+          localStorage.setItem('ar_prop_customers', JSON.stringify(initialCust));
+          localStorage.setItem('ar_prop_payments', JSON.stringify(initialPay));
+          localStorage.setItem('ar_prop_settings', JSON.stringify(initialSet));
+          localStorage.setItem('ar_prop_projects', JSON.stringify(initialProj));
         }
-      } else {
-        // Load default data
-        setCustomers(initialCustomers);
-        setPayments(initialPayments);
-        setCompanySettings(defaultCompanySettings);
-        setProjects(initialProjects);
+      } catch (error) {
+        console.error('Failed to initialize or sync Firestore database:', error);
         
-        localStorage.setItem('ar_prop_customers', JSON.stringify(initialCustomers));
-        localStorage.setItem('ar_prop_payments', JSON.stringify(initialPayments));
-        localStorage.setItem('ar_prop_settings', JSON.stringify(defaultCompanySettings));
-        localStorage.setItem('ar_prop_projects', JSON.stringify(initialProjects));
+        // Offline Fallback to Local Storage
+        const storedCustomers = localStorage.getItem('ar_prop_customers');
+        const storedPayments = localStorage.getItem('ar_prop_payments');
+        const storedSettings = localStorage.getItem('ar_prop_settings');
+        const storedProjects = localStorage.getItem('ar_prop_projects');
+
+        if (storedCustomers && storedPayments && storedSettings) {
+          setCustomers(JSON.parse(storedCustomers));
+          setPayments(JSON.parse(storedPayments));
+          setCompanySettings(JSON.parse(storedSettings));
+          if (storedProjects) {
+            setProjects(JSON.parse(storedProjects));
+          }
+        } else {
+          setCustomers(initialCustomers);
+          setPayments(initialPayments);
+          setCompanySettings(defaultCompanySettings);
+          setProjects(initialProjects);
+        }
+      } finally {
+        setLoading(false);
       }
-    } catch (e) {
-      console.error('Failed to load storage:', e);
-    }
+    };
+
+    initializeData();
   }, []);
 
   // --- State persistence helpers ---
@@ -190,9 +274,12 @@ export default function App() {
   const handleAddCustomer = (newCustomer: Customer, initialPayment?: Payment) => {
     const updated = [...customers, newCustomer];
     saveCustomersToStorage(updated);
+    saveCustomerToDB(newCustomer); // Save to Firestore
+    
     if (initialPayment) {
       const updatedPayments = [...payments, initialPayment];
       savePaymentsToStorage(updatedPayments);
+      savePaymentToDB(initialPayment); // Save to Firestore
       
       // Auto-open print receipt view for booking payment
       setPrintCustomer(newCustomer);
@@ -205,6 +292,7 @@ export default function App() {
   const handleEditCustomer = (updatedCustomer: Customer) => {
     const updated = customers.map(c => c.id === updatedCustomer.id ? updatedCustomer : c);
     saveCustomersToStorage(updated);
+    saveCustomerToDB(updatedCustomer); // Save to Firestore
   };
 
   // Delete Customer (Cascade delete payments)
@@ -217,45 +305,59 @@ export default function App() {
     
     saveCustomersToStorage(updatedCustomers);
     savePaymentsToStorage(updatedPayments);
+
+    deleteCustomerFromDB(id); // Delete from Firestore
+    
+    // Cascade delete payments from Firestore
+    const targetPayments = payments.filter(p => p.customerId === target.customerId);
+    for (const p of targetPayments) {
+      deletePaymentFromDB(p.id);
+    }
   };
 
   // Add Payment
   const handleAddPayment = (newPayment: Payment) => {
     const updated = [...payments, newPayment];
     savePaymentsToStorage(updated);
+    savePaymentToDB(newPayment); // Save to Firestore
   };
 
   // Edit Payment
   const handleEditPayment = (updatedPayment: Payment) => {
     const updated = payments.map(p => p.id === updatedPayment.id ? updatedPayment : p);
     savePaymentsToStorage(updated);
+    savePaymentToDB(updatedPayment); // Save to Firestore
   };
 
   // Delete Payment
   const handleDeletePayment = (id: string) => {
     const updated = payments.filter(p => p.id !== id);
     savePaymentsToStorage(updated);
+    deletePaymentFromDB(id); // Delete from Firestore
   };
 
   // Save Settings
   const handleSaveSettings = (updatedSettings: CompanySettings) => {
     saveSettingsToStorage(updatedSettings);
+    saveSettingsToDB(updatedSettings); // Save to Firestore
   };
 
   // Add Project
   const handleAddProject = (newProj: Project) => {
     const updated = [...projects, newProj];
     saveProjectsToStorage(updated);
+    saveProjectToDB(newProj); // Save to Firestore
   };
 
   // Delete Project
   const handleDeleteProject = (id: string) => {
     const updated = projects.filter(p => p.id !== id);
     saveProjectsToStorage(updated);
+    deleteProjectFromDB(id); // Delete from Firestore
   };
 
   // Restore State from JSON Backup
-  const handleRestoreState = (newState: AppState) => {
+  const handleRestoreState = async (newState: AppState) => {
     setCustomers(newState.customers);
     setPayments(newState.payments);
     setCompanySettings(newState.companySettings);
@@ -267,6 +369,20 @@ export default function App() {
     localStorage.setItem('ar_prop_customers', JSON.stringify(newState.customers));
     localStorage.setItem('ar_prop_payments', JSON.stringify(newState.payments));
     localStorage.setItem('ar_prop_settings', JSON.stringify(newState.companySettings));
+
+    // Update entire state to Firestore
+    for (const c of newState.customers) {
+      await saveCustomerToDB(c);
+    }
+    for (const p of newState.payments) {
+      await savePaymentToDB(p);
+    }
+    if (newState.projects) {
+      for (const pr of newState.projects) {
+        await saveProjectToDB(pr);
+      }
+    }
+    await saveSettingsToDB(newState.companySettings);
   };
 
   // Get current state to download backup
@@ -346,6 +462,23 @@ export default function App() {
     return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F4F1EA] flex flex-col items-center justify-center p-6 font-sans">
+        <div className="text-center space-y-4">
+          <div className="relative w-12 h-12 mx-auto">
+            <div className="absolute inset-0 rounded-2xl border-4 border-[#123C24]/15"></div>
+            <div className="absolute inset-0 rounded-2xl border-4 border-t-[#123C24] animate-spin"></div>
+          </div>
+          <div className="space-y-1">
+            <h3 className="font-bold text-stone-850 text-xs">ক্লাউড ডাটাবেস লোড হচ্ছে...</h3>
+            <p className="text-[10px] text-stone-500 font-bold">নিরাপদ সার্ভার সংযোগ নিশ্চিত করা হচ্ছে</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div 
       className="min-h-screen bg-natural-bg flex text-natural-text font-sans antialiased overflow-hidden"
@@ -403,11 +536,11 @@ export default function App() {
         <div className="p-4 mx-4 mb-4 bg-natural-primary/5 rounded-2xl border border-natural-primary/10 text-center text-xs space-y-1.5">
           <p className="font-medium text-natural-primary flex items-center justify-center gap-1.5">
             <Database className="w-3.5 h-3.5 text-natural-primary" />
-            <span>স্থানীয় ডাটা ইঞ্জিন</span>
+            <span>সুরক্ষিত ক্লাউড ডাটাবেস</span>
           </p>
           <div className="flex items-center justify-center gap-2">
-            <div className="w-2 h-2 bg-emerald-600 rounded-full animate-pulse"></div>
-            <span className="text-[10px] text-natural-muted uppercase tracking-wide font-mono">অনলাইন ডাটাবেস</span>
+            <div className="w-2.5 h-2.5 bg-emerald-600 rounded-full animate-pulse"></div>
+            <span className="text-[10px] text-natural-muted uppercase tracking-wide font-mono">লাইভ সংযোগ (Firestore)</span>
           </div>
         </div>
 
