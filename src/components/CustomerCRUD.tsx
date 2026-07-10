@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Customer, Payment, Project, PaymentMethod } from '../types';
 import { formatCurrency, generateCustomerId, exportToCSV } from '../utils';
-import { Plus, Search, Edit2, Trash2, X, Save, AlertTriangle, Eye, RefreshCw, FileSpreadsheet } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, Save, AlertTriangle, Eye, RefreshCw, FileSpreadsheet, Printer } from 'lucide-react';
 
 export interface ManualImportRow {
   name: string;
@@ -23,6 +23,7 @@ interface CustomerCRUDProps {
   onEditCustomer: (customer: Customer) => void;
   onDeleteCustomer: (id: string) => void;
   onNavigateToCustomerSearch: (customerId: string) => void;
+  onQuickPrint?: (customer: Customer, docType: 'receipt' | 'acknowledgment' | 'schedule' | 'history' | 'deed', payment: Payment | null) => void;
 }
 
 export default function CustomerCRUD({
@@ -32,11 +33,15 @@ export default function CustomerCRUD({
   onAddCustomer,
   onEditCustomer,
   onDeleteCustomer,
-  onNavigateToCustomerSearch
+  onNavigateToCustomerSearch,
+  onQuickPrint
 }: CustomerCRUDProps) {
   // Lists and Search Filter
   const [filterQuery, setFilterQuery] = useState('');
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>(customers);
+
+  // Print menu state
+  const [activePrintMenuCustomerId, setActivePrintMenuCustomerId] = useState<string | null>(null);
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -598,6 +603,113 @@ export default function CustomerCRUD({
                       </td>
                       <td className="p-4 text-center">
                         <div className="flex justify-center items-center gap-2">
+                          {/* Print Documents Dropdown */}
+                          <div className="relative inline-block text-left">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActivePrintMenuCustomerId(activePrintMenuCustomerId === c.customerId ? null : c.customerId);
+                              }}
+                              className="bg-natural-sidebar hover:bg-[#EBE7E0]/60 text-emerald-700 p-2 rounded-lg border border-natural-border transition-all cursor-pointer flex items-center justify-center"
+                              title="ডকুমেন্ট প্রিন্ট করুন (Print Documents)"
+                            >
+                              <Printer className="w-3.5 h-3.5" />
+                            </button>
+                            {activePrintMenuCustomerId === c.customerId && (() => {
+                              const custPayments = payments.filter(p => p.customerId === c.customerId);
+                              const latestPayment = custPayments.length > 0 ? custPayments[custPayments.length - 1] : null;
+                              return (
+                                <>
+                                  {/* Invisible backdrop to close menu */}
+                                  <div 
+                                    className="fixed inset-0 z-10 cursor-default" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActivePrintMenuCustomerId(null);
+                                    }}
+                                  />
+                                  <div className="absolute right-0 mt-1.5 w-60 bg-white border border-natural-border rounded-2xl shadow-xl py-2 z-20 font-sans text-left animate-in fade-in duration-100">
+                                    <div className="px-3.5 py-1.5 border-b border-natural-border/40 mb-1">
+                                      <p className="text-[9px] font-bold text-natural-muted uppercase tracking-wider">ডকুমেন্ট প্রিন্ট প্যানেল</p>
+                                      <p className="text-xs font-bold text-natural-text truncate">{c.name}</p>
+                                    </div>
+                                    
+                                    {latestPayment ? (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onQuickPrint && onQuickPrint(c, 'receipt', latestPayment);
+                                          setActivePrintMenuCustomerId(null);
+                                        }}
+                                        className="w-full text-left px-3.5 py-2 hover:bg-natural-sidebar/40 text-xs font-bold text-natural-text flex items-center gap-2 cursor-pointer transition-colors"
+                                      >
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                        ভাউচার রশিদ ({latestPayment.receiptNo})
+                                      </button>
+                                    ) : (
+                                      <p className="px-3.5 py-1.5 text-[10px] text-natural-muted italic">কোনো পেমেন্ট বিবরণী পাওয়া যায়নি</p>
+                                    )}
+                                    
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onQuickPrint && onQuickPrint(c, 'acknowledgment', latestPayment);
+                                        setActivePrintMenuCustomerId(null);
+                                      }}
+                                      className="w-full text-left px-3.5 py-2 hover:bg-natural-sidebar/40 text-xs font-bold text-natural-text flex items-center gap-2 cursor-pointer transition-colors"
+                                    >
+                                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                      Acknowledgment Letter
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onQuickPrint && onQuickPrint(c, 'schedule', latestPayment);
+                                        setActivePrintMenuCustomerId(null);
+                                      }}
+                                      className="w-full text-left px-3.5 py-2 hover:bg-natural-sidebar/40 text-xs font-bold text-natural-text flex items-center gap-2 cursor-pointer transition-colors"
+                                    >
+                                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                                      Payment Schedule
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onQuickPrint && onQuickPrint(c, 'history', latestPayment);
+                                        setActivePrintMenuCustomerId(null);
+                                      }}
+                                      className="w-full text-left px-3.5 py-2 hover:bg-natural-sidebar/40 text-xs font-bold text-natural-text flex items-center gap-2 cursor-pointer transition-colors"
+                                    >
+                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                      কালেকশন লেজার (Ledger)
+                                    </button>
+
+                                    {c.deedNo && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onQuickPrint && onQuickPrint(c, 'deed', latestPayment);
+                                          setActivePrintMenuCustomerId(null);
+                                        }}
+                                        className="w-full text-left px-3.5 py-2 hover:bg-natural-sidebar/40 text-xs font-bold text-natural-text flex items-center gap-2 cursor-pointer transition-colors"
+                                      >
+                                        <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
+                                        দলিল ও রেজিস্ট্রি নোটিশ
+                                      </button>
+                                    )}
+                                  </div>
+                                </>
+                              );
+                            })()}
+                          </div>
+
                           <button
                             onClick={() => onNavigateToCustomerSearch(c.customerId)}
                             className="bg-natural-sidebar hover:bg-[#EBE7E0]/60 text-natural-primary p-2 rounded-lg border border-natural-border transition-all cursor-pointer"

@@ -493,6 +493,7 @@ export default function App() {
                 onEditCustomer={handleEditCustomer}
                 onDeleteCustomer={handleDeleteCustomer}
                 onNavigateToCustomerSearch={handleNavigateToCustomerSearch}
+                onQuickPrint={handleQuickPrint}
               />
             )}
 

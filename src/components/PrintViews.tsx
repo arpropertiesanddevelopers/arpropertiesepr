@@ -576,24 +576,24 @@ export default function PrintViews({
               };
 
               return (
-                <div className="text-natural-text text-xs space-y-6 pt-4 font-sans leading-relaxed">
+                <div className="text-natural-text text-xs space-y-3.5 pt-2 print:pt-0 font-sans leading-relaxed">
                   {/* Header/Title */}
-                  <div className="text-center pb-2 border-b border-natural-border/60">
-                    <span className="text-sm font-serif font-bold tracking-widest text-natural-primary bg-natural-sidebar px-6 py-1.5 rounded-xl border border-natural-border shadow-sm uppercase">
+                  <div className="text-center pb-1 mb-1 border-b-2 border-natural-primary/20">
+                    <h1 className="text-xs sm:text-sm font-serif font-extrabold tracking-wider text-natural-primary uppercase">
                       {textTitle}
-                    </span>
+                    </h1>
                   </div>
 
                   {/* Date */}
-                  <div className="flex justify-between items-center border-b border-natural-border/40 pb-2">
-                    <span className="font-bold text-natural-muted">{textDate}</span>
-                    <span className="font-mono font-bold text-sm bg-natural-sidebar px-3 py-1 rounded-lg border border-natural-border">
+                  <div className="flex justify-between items-center border-b border-natural-border/30 pb-1">
+                    <span className="font-bold text-natural-muted text-xs">{textDate}</span>
+                    <span className="font-mono font-bold text-xs text-natural-text">
                       {selectedPayment ? selectedPayment.date.split('-').reverse().join('/') : new Date().toLocaleDateString('en-GB')}
                     </span>
                   </div>
 
                   {/* Attention Block */}
-                  <div className="space-y-1.5 bg-natural-sidebar/10 p-4 rounded-2xl border border-natural-border/40">
+                  <div className="space-y-1 bg-natural-sidebar/5 p-3 rounded-xl border border-natural-border/40">
                     <div className="flex items-baseline gap-2">
                       <span className="font-serif font-bold text-sm text-natural-muted">{textAttention}</span>
                       <span className="font-bold text-sm text-natural-primary uppercase border-b border-dotted border-natural-primary/60 pb-0.5">
@@ -612,12 +612,12 @@ export default function PrintViews({
                   </div>
 
                   {/* Project Details Section */}
-                  <div className="space-y-2">
-                    <p className="font-serif font-bold text-xs text-natural-primary border-b border-natural-border/60 pb-1 flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 bg-natural-primary rounded-full"></span>
+                  <div className="space-y-1">
+                    <p className="font-serif font-bold text-xs text-natural-primary border-b border-natural-border/60 pb-0.5 flex items-center gap-1.5">
+                      <span className="w-1 h-1 bg-natural-primary rounded-full"></span>
                       {textProjectDetails}
                     </p>
-                    <div className="grid grid-cols-[160px_12px_1fr] gap-y-1.5 text-xs px-2">
+                    <div className="grid grid-cols-[160px_12px_1fr] gap-y-1 text-xs px-2">
                       <span className="text-natural-muted font-bold">{textProjectName}</span>
                       <span className="text-natural-muted font-bold">:</span>
                       <span className="font-bold text-natural-text">{getLocalizedValue(customer.projectName)}</span>
@@ -637,12 +637,12 @@ export default function PrintViews({
                   </div>
 
                   {/* Price Details Section */}
-                  <div className="space-y-2">
-                    <p className="font-serif font-bold text-xs text-natural-primary border-b border-natural-border/60 pb-1 flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 bg-natural-primary rounded-full"></span>
+                  <div className="space-y-1">
+                    <p className="font-serif font-bold text-xs text-natural-primary border-b border-natural-border/60 pb-0.5 flex items-center gap-1.5">
+                      <span className="w-1 h-1 bg-natural-primary rounded-full"></span>
                       {textPrice}
                     </p>
-                    <div className="grid grid-cols-[160px_12px_1fr] gap-y-1.5 text-xs font-serif px-2">
+                    <div className="grid grid-cols-[160px_12px_1fr] gap-y-1 text-xs font-serif px-2">
                       <span className="text-natural-muted font-sans font-bold">{textPricePerDecimal}</span>
                       <span className="text-natural-muted font-sans font-bold">:</span>
                       <span className="font-bold text-natural-text">৳ {formatCurrency(customer.pricePerDecimal)} Tk.</span>
@@ -654,12 +654,12 @@ export default function PrintViews({
                   </div>
 
                   {/* Payment Breakdown */}
-                  <div className="space-y-2">
-                    <p className="font-serif font-bold text-xs text-natural-primary border-b border-natural-border/60 pb-1 flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 bg-natural-primary rounded-full"></span>
+                  <div className="space-y-1">
+                    <p className="font-serif font-bold text-xs text-natural-primary border-b border-natural-border/60 pb-0.5 flex items-center gap-1.5">
+                      <span className="w-1 h-1 bg-natural-primary rounded-full"></span>
                       {textPaymentStatus}
                     </p>
-                    <div className="grid grid-cols-[200px_12px_1fr] gap-y-2.5 text-xs font-serif bg-natural-sidebar/30 p-4 rounded-2xl border border-natural-border/60">
+                    <div className="grid grid-cols-[200px_12px_1fr] gap-y-1 text-xs font-serif bg-natural-sidebar/5 p-3 rounded-xl border border-natural-border/40">
                       
                       {/* List individual positive payments dynamically */}
                       {sortedPayments.filter(p => p.type !== 'Withdraw' && p.type !== 'PLOT Cancel').map((p) => {
@@ -720,18 +720,18 @@ export default function PrintViews({
                   </div>
 
                   {/* Company Acknowledgment / Guarantee Wording */}
-                  <div className="bg-natural-sidebar/20 p-4 rounded-2xl border border-dashed border-natural-border/80 mt-6 text-justify">
+                  <div className="bg-natural-sidebar/10 p-3 rounded-xl border border-dashed border-natural-border/60 mt-3 text-justify">
                     {textAcknowledgmentPara()}
                   </div>
 
                   {/* Signature Section */}
-                  <div className="pt-20 flex justify-end">
-                    <div className="space-y-1 text-center font-serif min-w-[240px]">
-                      <p className="text-xs font-semibold font-sans text-natural-muted text-center mb-16">{textSignatureLabel}</p>
-                      <div className="border-t border-natural-border/60 pt-2">
-                        <p className="font-bold text-natural-text text-sm">S.M. Mahfuzul Karim Milon</p>
-                        <p className="text-[10px] text-natural-muted font-medium">{textManagingDirector}</p>
-                        <p className="font-bold text-natural-primary text-[10px] mt-0.5">A.R. Properties and Developers</p>
+                  <div className="pt-6 flex justify-end">
+                    <div className="space-y-0.5 text-center font-serif min-w-[240px]">
+                      <p className="text-xs font-semibold font-sans text-natural-muted text-center mb-10">{textSignatureLabel}</p>
+                      <div className="border-t border-natural-border/60 pt-1.5">
+                        <p className="font-bold text-natural-text text-xs">S.M. Mahfuzul Karim Milon</p>
+                        <p className="text-[9px] text-natural-muted font-medium">{textManagingDirector}</p>
+                        <p className="font-bold text-natural-primary text-[9px] mt-0.5">A.R. Properties and Developers</p>
                       </div>
                     </div>
                   </div>
