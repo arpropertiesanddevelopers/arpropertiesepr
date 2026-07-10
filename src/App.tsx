@@ -144,11 +144,25 @@ export default function App() {
   // --- Load Initial State from Firestore Cloud with LocalStorage Fallback ---
   useEffect(() => {
     const initializeData = async () => {
+      // Timeout helper to prevent infinite loading on network blocks or database configurations
+      function withTimeout<T>(promise: Promise<T>, ms: number, fallbackValue: T): Promise<T> {
+        return Promise.race([
+          promise,
+          new Promise<T>((resolve) => setTimeout(() => {
+            console.warn(`Firestore operation timed out after ${ms}ms. Using fallback.`);
+            resolve(fallbackValue);
+          }, ms))
+        ]);
+      }
+
       try {
-        const dbCustomers = await getCustomersFromDB();
-        const dbPayments = await getPaymentsFromDB();
-        const dbProjects = await getProjectsFromDB();
-        const dbSettings = await getSettingsFromDB();
+        // Load cloud data in parallel with a 3.5 second timeout to guarantee fast loading
+        const [dbCustomers, dbPayments, dbProjects, dbSettings] = await Promise.all([
+          withTimeout(getCustomersFromDB(), 3500, []),
+          withTimeout(getPaymentsFromDB(), 3500, []),
+          withTimeout(getProjectsFromDB(), 3500, []),
+          withTimeout(getSettingsFromDB(), 3500, null)
+        ]);
 
         // Prioritize Firestore cloud data if present
         if (dbCustomers.length > 0 || dbPayments.length > 0 || dbProjects.length > 0 || dbSettings) {
