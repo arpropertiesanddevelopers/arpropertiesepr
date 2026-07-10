@@ -103,7 +103,7 @@ export default function PrintViews({
   };
 
   return (
-    <div className="fixed inset-0 bg-natural-text/50 backdrop-blur-sm z-50 overflow-y-auto no-print flex justify-center py-6 px-4">
+    <div className="fixed inset-0 bg-natural-text/50 backdrop-blur-sm z-50 overflow-y-auto flex justify-center py-6 px-4 print-modal-overlay">
       {/* Dynamic Style Sheet for Printing Margins and Size */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
@@ -118,7 +118,7 @@ export default function PrintViews({
         }
       `}} />
 
-      <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full flex flex-col overflow-hidden border border-natural-border">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full flex flex-col overflow-hidden border border-natural-border print-modal-card">
         
         {/* Modal Controls */}
         <div className="bg-natural-sidebar border-b border-natural-border px-6 py-4 flex items-center justify-between no-print">
@@ -234,7 +234,7 @@ export default function PrintViews({
         </div>
 
         {/* Scrollable Document Container */}
-        <div className="p-8 flex-1 overflow-y-auto bg-natural-sidebar/20 flex justify-center">
+        <div className="p-8 flex-1 overflow-y-auto bg-natural-sidebar/20 flex justify-center print-modal-scrollable-container">
           
           {/* Printable Sheet (Letter or A4 styled wrapper) */}
           <div 

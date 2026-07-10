@@ -193,6 +193,11 @@ export default function App() {
     if (initialPayment) {
       const updatedPayments = [...payments, initialPayment];
       savePaymentsToStorage(updatedPayments);
+      
+      // Auto-open print receipt view for booking payment
+      setPrintCustomer(newCustomer);
+      setActivePrintDoc('receipt');
+      setPrintPayment(initialPayment);
     }
   };
 
