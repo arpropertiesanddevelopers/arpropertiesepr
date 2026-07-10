@@ -1,10 +1,9 @@
 {
-  "projectId": "virtual-glass-13bk6",
-  "appId": "1:3220262566:web:067d8526262247118cee67",
-  "apiKey": "AIzaSyDfwAMEjpOj75hwg6FK7o-73kKhPFbsOco",
-  "authDomain": "virtual-glass-13bk6.firebaseapp.com",
-  "storageBucket": "virtual-glass-13bk6.firebasestorage.app",
-  "messagingSenderId": "3220262566",
-  "measurementId": "",
-  "oAuthClientId": "3220262566-p4kjl1ntfvi368nrmbs4rnq4beuoocfp.apps.googleusercontent.com"
+  "projectId": "arpropertieserp",
+  "appId": "1:221203529153:web:4bd151f6bc3032007e0340",
+  "apiKey": "AIzaSyDwjpXlZTIJ_CnzrwHJRHWOM2UYQbUF9yw",
+  "authDomain": "arpropertieserp.firebaseapp.com",
+  "storageBucket": "arpropertieserp.firebasestorage.app",
+  "messagingSenderId": "221203529153",
+  "measurementId": "G-9XP3029JS1"
 }
