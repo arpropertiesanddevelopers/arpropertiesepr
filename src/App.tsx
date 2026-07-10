@@ -351,6 +351,19 @@ export default function App() {
 
   // Restore State from JSON Backup
   const handleRestoreState = async (newState: AppState) => {
+    // Clean up current Firestore records to prevent duplicate/merged data
+    try {
+      console.log('Clearing old entries from database before restore...');
+      const cleanups = [
+        ...customers.map(c => deleteCustomerFromDB(c.id)),
+        ...payments.map(p => deletePaymentFromDB(p.id)),
+        ...projects.map(pr => deleteProjectFromDB(pr.id))
+      ];
+      await Promise.all(cleanups);
+    } catch (err) {
+      console.warn('Non-blocking error during database cleanup for restore:', err);
+    }
+
     setCustomers(newState.customers);
     setPayments(newState.payments);
     setCompanySettings(newState.companySettings);
@@ -376,6 +389,32 @@ export default function App() {
       }
     }
     await saveSettingsToDB(newState.companySettings);
+  };
+
+  // Clear All Data (Database Factory Reset)
+  const handleClearAllData = async () => {
+    // 1. Delete all current data from Firestore
+    try {
+      console.log('Performing factory reset: clearing all entries from Firestore...');
+      const cleanups = [
+        ...customers.map(c => deleteCustomerFromDB(c.id)),
+        ...payments.map(p => deletePaymentFromDB(p.id)),
+        ...projects.map(pr => deleteProjectFromDB(pr.id))
+      ];
+      await Promise.all(cleanups);
+    } catch (err) {
+      console.error('Error during factory reset of Firestore database:', err);
+    }
+
+    // 2. Clear React local states
+    setCustomers([]);
+    setPayments([]);
+    setProjects([]);
+
+    // 3. Reset LocalStorage caches
+    localStorage.setItem('ar_prop_customers', JSON.stringify([]));
+    localStorage.setItem('ar_prop_payments', JSON.stringify([]));
+    localStorage.setItem('ar_prop_projects', JSON.stringify([]));
   };
 
   // Get current state to download backup
@@ -655,6 +694,7 @@ export default function App() {
                 onDeleteProject={handleDeleteProject}
                 customers={customers}
                 payments={payments}
+                onClearAllData={handleClearAllData}
               />
             )}
 

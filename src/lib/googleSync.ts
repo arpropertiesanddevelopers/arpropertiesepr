@@ -76,6 +76,20 @@ export const getAccessToken = async (): Promise<string | null> => {
 };
 
 /**
+ * Helper to extract detailed Google API error message
+ */
+async function throwDetailedError(response: Response, defaultMessage: string): Promise<never> {
+  let details = '';
+  try {
+    const errData = await response.json();
+    details = errData?.error?.message || JSON.stringify(errData);
+  } catch (e) {
+    details = `HTTP Status ${response.status}`;
+  }
+  throw new Error(`${defaultMessage}: ${details}`);
+}
+
+/**
  * Search Google Drive for an existing spreadsheet named 'A.R. Properties - Ledger Sync'
  */
 async function findExistingSpreadsheet(accessToken: string): Promise<string | null> {
@@ -87,7 +101,7 @@ async function findExistingSpreadsheet(accessToken: string): Promise<string | nu
   });
   
   if (!response.ok) {
-    throw new Error('গুগল ড্রাইভ সার্চ করতে ব্যর্থ হয়েছে');
+    await throwDetailedError(response, 'গুগল ড্রাইভ সার্চ করতে ব্যর্থ হয়েছে');
   }
   
   const data = await response.json();
@@ -130,7 +144,7 @@ async function createSpreadsheet(accessToken: string): Promise<string> {
   });
 
   if (!response.ok) {
-    throw new Error('নতুন গুগল স্প্রেডশিট তৈরি করতে ব্যর্থ হয়েছে');
+    await throwDetailedError(response, 'নতুন গুগল স্প্রেডশিট তৈরি করতে ব্যর্থ হয়েছে');
   }
 
   const spreadsheet = await response.json();
@@ -257,7 +271,7 @@ export async function syncToGoogleSheets(
   );
 
   if (!custWriteRes.ok) {
-    throw new Error('গ্রাহক তালিকা আপডেট করতে ব্যর্থ হয়েছে');
+    await throwDetailedError(custWriteRes, 'গ্রাহক তালিকা আপডেট করতে ব্যর্থ হয়েছে');
   }
 
   // Write to Payments sheet
@@ -287,7 +301,7 @@ export async function syncToGoogleSheets(
   );
 
   if (!payWriteRes.ok) {
-    throw new Error('পেমেন্ট লেজার আপডেট করতে ব্যর্থ হয়েছে');
+    await throwDetailedError(payWriteRes, 'পেমেন্ট লেজার আপডেট করতে ব্যর্থ হয়েছে');
   }
 
   onStatusUpdate?.('সফলভাবে গুগল শিটে সিঙ্ক সম্পন্ন হয়েছে!');

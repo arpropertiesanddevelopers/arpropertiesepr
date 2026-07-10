@@ -38,6 +38,7 @@ interface AdminPanelProps {
   onDeleteProject: (id: string) => void;
   customers: Customer[];
   payments: Payment[];
+  onClearAllData: () => Promise<void>;
 }
 
 export default function AdminPanel({
@@ -49,10 +50,15 @@ export default function AdminPanel({
   onAddProject,
   onDeleteProject,
   customers,
-  payments
+  payments,
+  onClearAllData
 }: AdminPanelProps) {
   // Admin Tabs
   const [adminTab, setAdminTab] = useState<'profile' | 'projects' | 'theme' | 'backup' | 'google-sync' | 'security'>('profile');
+
+  // Reset/Clear Data states
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   // Security Settings States
   const [authEnabled, setAuthEnabled] = useState(() => {
@@ -324,6 +330,28 @@ export default function AdminPanel({
     };
 
     fileReader.readAsText(files[0]);
+  };
+
+  // Handle Full Database Factory Reset
+  const handleFactoryReset = async () => {
+    const confirm1 = window.confirm("আপনি কি নিশ্চিত যে আপনি ডাটাবেজের সমস্ত গ্রাহক, পেমেন্ট এবং প্রকল্পসমূহ স্থায়ীভাবে মুছে ফেলতে চান?");
+    if (!confirm1) return;
+    
+    const confirm2 = window.confirm("🚨 সতর্কতা: এটি চূড়ান্ত ও অপরিবর্তনশীল! সমস্ত গ্রাহক তালিকা, পেমেন্ট হিস্ট্রি এবং প্রকল্পের ডাটা ক্লাউড ফায়ারবেস ও লোকাল স্টোরেজ থেকে সম্পূর্ণ চিরতরে ডিলিট হয়ে যাবে। আপনি কি সত্যিই মুছে দিতে চান?");
+    if (!confirm2) return;
+
+    try {
+      setIsResetting(true);
+      setRestoreError('');
+      setRestoreSuccess(false);
+      await onClearAllData();
+      setResetSuccess(true);
+      setTimeout(() => setResetSuccess(false), 5000);
+    } catch (err) {
+      setRestoreError('ডাটাবেজ মুছতে কোনো অপ্রত্যাশিত ত্রুটি হয়েছে!');
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   return (
@@ -695,7 +723,7 @@ export default function AdminPanel({
                 <p className="text-xs text-natural-muted mt-1">সিস্টেমের সমস্ত ডাটা সুরক্ষিত রাখতে ব্যাকআপ ফাইল তৈরি করুন বা পুরাতন ব্যাকআপ ডাটা আপলোড করুন।</p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
                 {/* Backup Card */}
                 <div className="bg-natural-sidebar/30 border border-natural-border p-6 rounded-2xl space-y-4">
@@ -746,7 +774,40 @@ export default function AdminPanel({
                   </div>
                 </div>
 
+                {/* Factory Reset Card */}
+                <div className="bg-rose-50/25 border border-rose-200 p-6 rounded-2xl space-y-4 flex flex-col justify-between">
+                  <div>
+                    <h4 className="text-xs font-bold text-rose-700 flex items-center gap-1.5 uppercase tracking-wide mb-2">
+                      <Trash2 className="w-4.5 h-4.5 text-rose-700" />
+                      ডাটাবেজ রিসেট (Reset)
+                    </h4>
+                    <p className="text-[11px] text-rose-800 bg-rose-50/50 p-3 rounded-xl border border-rose-100 leading-normal mb-3">
+                      <strong>🚨 সতর্কতা:</strong> এটি ক্লিক করলে ক্লাউড ও লোকাল মেমোরি থেকে সমস্ত কাস্টমার, প্রজেক্ট এবং কিস্তি এন্ট্রি চিরতরে ডিলিট হয়ে যাবে।
+                    </p>
+                  </div>
+                  
+                  <button
+                    onClick={handleFactoryReset}
+                    disabled={isResetting}
+                    className="w-full bg-rose-700 hover:bg-rose-800 text-white font-bold text-xs py-2.5 rounded-xl shadow flex items-center justify-center gap-2 transition-all cursor-pointer disabled:bg-rose-400 disabled:cursor-not-allowed"
+                  >
+                    {isResetting ? (
+                      <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                    সবকিছু ডিলিট করুন (Factory Reset)
+                  </button>
+                </div>
+
               </div>
+
+              {resetSuccess && (
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-3 py-2 rounded-xl font-semibold flex items-center gap-2 animate-fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 animate-bounce" />
+                  ডাটাবেজ সম্পূর্ণ রিসেট করা হয়েছে! আপনার সমস্ত ডাটা সফলভাবে মুছে ফেলা হয়েছে।
+                </div>
+              )}
 
               {restoreSuccess && (
                 <div className="bg-natural-sidebar border border-natural-border text-natural-primary text-xs px-3 py-2 rounded-xl font-semibold flex items-center gap-2">
@@ -995,7 +1056,7 @@ export default function AdminPanel({
 
                       <div className="space-y-2 pl-2 border-l-2 border-natural-primary/30">
                         <p>
-                          <strong>২. ব্রাউজার পপ-আপ এবং রিডাইরেক্ট এলাও করুন:</strong>
+                          <strong>৩. ব্রাউজার পপ-আপ এবং রিডাইরেক্ট এলাও করুন:</strong>
                         </p>
                         <p className="pl-2 leading-relaxed">
                           লগইন বাটনে ক্লিক করলে ব্রাউজারের এড্রেস বারের ডান পাশে একটি পপ-আপ ব্লকার আইকন দেখাতে পারে। সেখানে ক্লিক করে "Always allow popups and redirects from this site" সিলেক্ট করুন।
@@ -1004,10 +1065,19 @@ export default function AdminPanel({
 
                       <div className="space-y-2 pl-2 border-l-2 border-natural-primary/30">
                         <p>
-                          <strong>৩. আইফ্রেম (iFrame) সীমাবদ্ধতা এড়াতে নতুন ট্যাবে অ্যাপটি খুলুন:</strong>
+                          <strong>৪. আইফ্রেম (iFrame) সীমাবদ্ধতা এড়াতে নতুন ট্যাবে অ্যাপটি খুলুন:</strong>
                         </p>
                         <p className="pl-2 leading-relaxed">
                           ডেভেলপমেন্ট বা প্রিভিউ চলাকালীন আইফ্রেম ব্লক এড়াতে সরাসরি এই লিংকে ক্লিক করে নতুন ট্যাবে ট্রাই করুন: <a href="https://ais-dev-ls4gayjxukrpy7hnlowcwg-69363354627.asia-southeast1.run.app" target="_blank" rel="noreferrer" className="text-natural-primary underline font-bold">Open App in New Tab</a>।
+                        </p>
+                      </div>
+
+                      <div className="space-y-2 pl-2 border-l-2 border-natural-primary/30">
+                        <p>
+                          <strong>৫. গুগল ড্রাইভ ও স্প্রেডশিট এপিআই (Google Drive & Sheets API) সক্রিয় করা:</strong>
+                        </p>
+                        <p className="pl-2 leading-relaxed">
+                          যদি গুগল ড্রাইভ সিঙ্ক করার সময় কোনো লাল রঙের ইরর বার্তা আসে (যেমন: <code className="font-mono bg-slate-100 px-1 text-[10px]">API has not been used before or is disabled</code>), তাহলে আপনাকে আপনার ফায়ারবেস প্রজেক্টের গুগল ক্লাউড কনসোলে (Google Cloud Console) গিয়ে <strong>Google Sheets API</strong> এবং <strong>Google Drive API</strong> দুটি সক্রিয় বা ইনেবল করে নিতে হবে। সিঙ্ক করার পর ভেসে ওঠা ইরর লিংকে ক্লিক করেই আপনি সরাসরি গুগল ক্লাউড কনসোল থেকে এই দুটি এপিআই ১ ক্লিকেই সক্রিয় করতে পারবেন।
                         </p>
                       </div>
                     </div>
