@@ -29,6 +29,15 @@ export default function PrintViews({
   const [padWidth, setPadWidth] = useState(7.5); // Default to 7.5 inches width as requested
   const [docLanguage, setDocLanguage] = useState<'bilingual' | 'bn' | 'en'>('bilingual');
 
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}.${parts[1]}.${parts[0]}`; // DD.MM.YYYY
+    }
+    return dateStr;
+  };
+
   // Sorting payments chronologically for ledger/history
   const sortedPayments = [...payments].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   
@@ -165,7 +174,7 @@ export default function PrintViews({
             </label>
             <span className="text-natural-muted">|</span>
             <span className="text-natural-muted italic">সাইজ: Letter (8.5 x 11 inches)</span>
-            {activePrintDoc === 'acknowledgment' && (
+            {activePrintDoc && (
               <>
                 <span className="text-natural-muted">|</span>
                 <div className="flex items-center gap-1.5 bg-white border border-natural-border px-2.5 py-1 rounded-xl shadow-sm">
@@ -277,136 +286,189 @@ export default function PrintViews({
               {/* ======================================= */}
               {/* DOCUMENT 1: MONEY RECEIPT (মানি রিসিট) */}
               {/* ======================================= */}
-              {activePrintDoc === 'receipt' && (
-                <div>
-                  {/* Title */}
-                  <div className="text-center my-6">
-                    <span className="border-2 border-natural-primary px-6 py-1.5 text-sm font-serif font-bold tracking-widest bg-natural-sidebar uppercase rounded-xl shadow-sm text-natural-primary">
-                      মানি রিসিট / MONEY RECEIPT
-                    </span>
-                  </div>
+              {/* ======================================= */}
+              {/* DOCUMENT 1: MONEY RECEIPT (মানি রিসিট) */}
+              {/* ======================================= */}
+              {activePrintDoc === 'receipt' && (() => {
+                const isEn = docLanguage === 'en';
+                const isBn = docLanguage === 'bn';
 
-                  {/* Meta details */}
-                  <div className="grid grid-cols-2 gap-4 text-xs mt-8 mb-6 bg-natural-sidebar/30 p-4 border border-natural-border rounded-2xl">
-                    <div className="space-y-2">
-                      <p><span className="font-semibold text-natural-muted">রশিদ নম্বর / Receipt No:</span> <span className="font-mono font-bold bg-white border border-natural-border px-2.5 py-0.5 rounded-lg text-natural-primary">{selectedPayment ? selectedPayment.receiptNo : 'REC-NEW'}</span></p>
-                      <p><span className="font-semibold text-natural-muted">গ্রাহক আইডি / Customer ID:</span> <span className="font-bold text-natural-text">{customer.customerId}</span></p>
-                      <p><span className="font-semibold text-natural-muted">গ্রাহকের নাম / Customer Name:</span> <span className="font-bold text-natural-text">{getLocalizedValue(customer.name)}</span></p>
-                      <p><span className="font-semibold text-natural-muted">মোবাইল নম্বর / Mobile No:</span> <span className="text-natural-text">{customer.mobile}</span></p>
-                    </div>
-                    <div className="space-y-2 text-right">
-                      <p><span className="font-semibold text-natural-muted">তারিখ / Date:</span> <span className="font-bold text-natural-text">{selectedPayment ? selectedPayment.date : new Date().toISOString().split('T')[0]}</span></p>
-                      <p><span className="font-semibold text-natural-muted">প্রকল্পের নাম / Project:</span> <span className="font-bold text-natural-text">{getLocalizedValue(customer.projectName)}</span></p>
-                      <p><span className="font-semibold text-natural-muted">প্লট/রোড নম্বর / Plot & Road No:</span> <span className="text-natural-text">{getLocalizedValue(customer.plotNo) || 'N/A'} (আকার: {customer.plotSize} শতাংশ / {customer.plotSize} Decimal)</span></p>
-                      <p><span className="font-semibold text-natural-muted">জাতীয় পরিচয়পত্র / NID:</span> <span className="text-natural-text">{customer.nid}</span></p>
-                    </div>
-                  </div>
+                const textReceiptTitle = isBn ? 'মানি রিসিট' : isEn ? 'MONEY RECEIPT' : 'মানি রিসিট / MONEY RECEIPT';
+                
+                const labelReceiptNo = isBn ? 'রশিদ নম্বর' : isEn ? 'Receipt No' : 'রশিদ নম্বর / Receipt No';
+                const labelCustomerId = isBn ? 'গ্রাহক আইডি' : isEn ? 'Customer ID' : 'গ্রাহক আইডি / Customer ID';
+                const labelCustomerName = isBn ? 'গ্রাহকের নাম' : isEn ? 'Customer Name' : 'গ্রাহকের নাম / Customer Name';
+                const labelMobileNo = isBn ? 'মোবাইল নম্বর' : isEn ? 'Mobile No' : 'মোবাইল নম্বর / Mobile No';
+                const labelDate = isBn ? 'তারিখ' : isEn ? 'Date' : 'তারিখ / Date';
+                const labelProject = isBn ? 'প্রকল্পের নাম' : isEn ? 'Project' : 'প্রকল্পের নাম / Project';
+                const labelPlotNo = isBn ? 'প্লট/রোড নম্বর' : isEn ? 'Plot & Road No' : 'প্লট/রোড নম্বর / Plot & Road No';
+                const labelNid = isBn ? 'জাতীয় পরিচয়পত্র' : isEn ? 'NID' : 'জাতীয় পরিচয়পত্র / NID';
 
-                {/* Receipt Description Table */}
-                <table className="w-full text-xs text-left border-collapse border border-natural-border mt-6 mb-8">
-                  <thead>
-                    <tr className="bg-natural-sidebar border-b border-natural-border">
-                      <th className="p-3 border-r border-natural-border font-bold text-natural-text">বিবরণ / Particulars</th>
-                      <th className="p-3 border-r border-natural-border font-bold text-natural-text">পেমেন্ট মাধ্যম / Method</th>
-                      <th className="p-3 text-right font-bold text-natural-text">পরিমাণ / Amount (Tk)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b border-natural-border">
-                      <td className="p-4 border-r border-natural-border leading-relaxed">
-                        <p className="font-bold text-natural-text">
-                          {selectedPayment ? (
-                            selectedPayment.type === 'Booking' ? 'প্লট বুকিং বাবদ অগ্রিম পেমেন্ট' :
-                            selectedPayment.type === 'Down Payment' ? 'প্লট ক্রয়ের ডাউন পেমেন্ট' :
-                            selectedPayment.type === 'Installment' ? 'প্লটের নিয়মিত কিস্তি বাবদ পরিশোধ' :
-                            selectedPayment.type === 'Previous Payment' ? 'পূর্ববর্তী বকেয়া পেমেন্ট বাবদ পরিশোধ' :
-                            selectedPayment.type === 'Re-Payment' ? 'রি-পেমেন্ট বাবদ পরিশোধ' :
-                            selectedPayment.type === 'Total Payment' ? 'মোট পেমেন্ট বাবদ সম্পূর্ণ পরিশোধ' :
-                            selectedPayment.type === 'Withdraw' ? 'গ্রাহক কর্তৃক জমা টাকা উত্তোলন / উইথড্র' :
-                            selectedPayment.type === 'PLOT Cancel' ? 'প্লট বাতিল বাবদ ফেরত পরিশোধ' :
-                            'অন্যান্য পেমেন্ট পরিশোধ'
-                          ) : 'আজকের পেমেন্ট পরিশোধ'}
-                        </p>
-                        <p className="text-[10px] text-natural-muted mt-1 italic">
-                          {selectedPayment ? (
-                            selectedPayment.type === 'Booking' ? 'Advance Booking Money for Plot Booking' :
-                            selectedPayment.type === 'Down Payment' ? 'Down Payment for Plot Purchase' :
-                            selectedPayment.type === 'Installment' ? 'Regular Installment Payment' :
-                            selectedPayment.type === 'Previous Payment' ? 'Previous Outstanding Payment Clearing' :
-                            selectedPayment.type === 'Re-Payment' ? 'Re-Payment Settlement' :
-                            selectedPayment.type === 'Total Payment' ? 'Full and Final Contract Payment' :
-                            selectedPayment.type === 'Withdraw' ? 'Customer Fund Withdrawal' :
-                            selectedPayment.type === 'PLOT Cancel' ? 'Plot Cancellation Refund' :
-                            'Miscellaneous payment'
-                          ) : "Today's Payment Processing"}
-                        </p>
-                        {selectedPayment?.remarks && (
-                          <p className="text-[10px] bg-natural-sidebar text-natural-text px-2.5 py-1 rounded-xl border border-natural-border mt-2 font-mono">
-                            মন্তব্য / Remarks: {selectedPayment.remarks}
-                          </p>
-                        )}
-                      </td>
-                      <td className="p-4 border-r border-natural-border">
-                        <span className="font-bold bg-natural-sidebar px-2.5 py-1 rounded border border-natural-border text-natural-text">
-                          {selectedPayment ? selectedPayment.paymentMethod : 'Cash'}
-                        </span>
-                      </td>
-                      <td className="p-4 text-right font-serif font-bold text-natural-text text-sm">
-                        ৳ {formatCurrency(selectedPayment ? selectedPayment.amount : 0)}
-                      </td>
-                    </tr>
-                    <tr className="bg-natural-sidebar/20 font-bold">
-                      <td colSpan={2} className="p-3 text-right border-r border-natural-border text-natural-text">মোট পরিশোধিত টাকা / Total Paid Amount:</td>
-                      <td className="p-3 text-right font-serif text-natural-primary text-sm">৳ {formatCurrency(selectedPayment ? selectedPayment.amount : 0)}</td>
-                    </tr>
-                  </tbody>
-                </table>
+                const labelParticulars = isBn ? 'বিবরণ' : isEn ? 'Particulars' : 'বিবরণ / Particulars';
+                const labelMethod = isBn ? 'পেমেন্ট মাধ্যম' : isEn ? 'Method' : 'পেমেন্ট মাধ্যম / Method';
+                const labelAmount = isBn ? 'পরিমাণ (টাকা)' : isEn ? 'Amount (Tk)' : 'পরিমাণ / Amount (Tk)';
 
-                {/* Words Translation */}
-                <div className="text-xs space-y-3 border border-natural-border p-4 rounded-2xl bg-natural-sidebar/40 mb-12">
-                  <p>
-                    <span className="font-bold text-natural-primary">টাকা কথায় (Bengali Words):</span>{' '}
-                    <span className="font-medium underline decoration-dotted decoration-natural-primary decoration-2 text-natural-text">
-                      {selectedPayment ? numberToBengaliWords(selectedPayment.amount) : 'শূণ্য টাকা মাত্র'}
-                    </span>
-                  </p>
-                  <p>
-                    <span className="font-bold text-natural-primary">Amount in Words:</span>{' '}
-                    <span className="font-medium underline decoration-dotted decoration-natural-primary decoration-2 italic text-natural-text">
-                      {selectedPayment ? numberToEnglishWords(selectedPayment.amount) : 'Zero Taka Only'}
-                    </span>
-                  </p>
-                </div>
+                const bookingPaymentObj = payments.find(p => p.type === 'Booking');
 
-                {/* Ledger Quick Summary context */}
-                <div className="grid grid-cols-3 gap-4 border border-dashed border-natural-border p-4 rounded-2xl text-center text-xs mb-16 bg-natural-sidebar/10">
+                return (
                   <div>
-                    <p className="text-natural-muted font-semibold">প্লটের মোট মূল্য (Total Price)</p>
-                    <p className="font-serif font-bold text-natural-text text-sm mt-1">৳ {formatCurrency(customer.totalPrice)}</p>
-                  </div>
-                  <div className="border-x border-natural-border">
-                    <p className="text-natural-muted font-semibold">মোট জমাকৃত (Total Cumulative Paid)</p>
-                    <p className="font-serif font-bold text-natural-primary text-sm mt-1">৳ {formatCurrency(totalPaid)}</p>
-                  </div>
-                  <div>
-                    <p className="text-natural-muted font-semibold">সর্বমোট বকেয়া (Remaining Net Due)</p>
-                    <p className="font-serif font-bold text-rose-700 text-sm mt-1">৳ {formatCurrency(totalDue)}</p>
-                  </div>
-                </div>
+                    {/* Title */}
+                    <div className="text-center my-6">
+                      <span className="border-2 border-natural-primary px-6 py-1.5 text-sm font-serif font-bold tracking-widest bg-natural-sidebar uppercase rounded-xl shadow-sm text-natural-primary">
+                        {textReceiptTitle}
+                      </span>
+                    </div>
 
-                {/* Signatures Slot */}
-                <div className="mt-20 flex justify-end">
-                  <div className="space-y-1 text-center font-serif min-w-[240px]">
-                    <p className="text-xs font-semibold font-sans text-natural-muted text-center mb-16">স্বাক্ষর / Signature:</p>
-                    <div className="border-t border-natural-border/60 pt-2">
-                      <p className="font-bold text-natural-text text-xs">S.M. Mahfuzul Karim Milon</p>
-                      <p className="text-[10px] text-natural-muted font-medium">(Managing Director)</p>
-                      <p className="font-bold text-natural-primary text-[10px] mt-0.5">A.R. Properties and Developers</p>
+                    {/* Meta details */}
+                    <div className="grid grid-cols-2 gap-4 text-xs mt-8 mb-6 bg-natural-sidebar/30 p-4 border border-natural-border rounded-2xl">
+                      <div className="space-y-2">
+                        <p><span className="font-semibold text-natural-muted">{labelReceiptNo}:</span> <span className="font-mono font-bold bg-white border border-natural-border px-2.5 py-0.5 rounded-lg text-natural-primary">{selectedPayment ? selectedPayment.receiptNo : 'REC-NEW'}</span></p>
+                        <p><span className="font-semibold text-natural-muted">{labelCustomerId}:</span> <span className="font-bold text-natural-text">{customer.customerId}</span></p>
+                        <p><span className="font-semibold text-natural-muted">{labelCustomerName}:</span> <span className="font-bold text-natural-text">{getLocalizedValue(customer.name)}</span></p>
+                        <p><span className="font-semibold text-natural-muted">{labelMobileNo}:</span> <span className="text-natural-text font-mono">{customer.mobile}</span></p>
+                      </div>
+                      <div className="space-y-2 text-right">
+                        <p><span className="font-semibold text-natural-muted">{labelDate}:</span> <span className="font-bold text-natural-text font-mono">{selectedPayment ? formatDate(selectedPayment.date) : formatDate(new Date().toISOString().split('T')[0])}</span></p>
+                        <p><span className="font-semibold text-natural-muted">{labelProject}:</span> <span className="font-bold text-natural-text">{getLocalizedValue(customer.projectName)}</span></p>
+                        <p><span className="font-semibold text-natural-muted">{labelPlotNo}:</span> <span className="text-natural-text font-bold">{getLocalizedValue(customer.plotNo) || 'N/A'} <span className="text-[10px] text-natural-muted font-normal">({isBn ? 'আকার:' : isEn ? 'Size:' : 'আকার / Size:'} {customer.plotSize} {isBn ? 'শতাংশ' : 'Decimal'})</span></span></p>
+                        <p><span className="font-semibold text-natural-muted">{labelNid}:</span> <span className="text-natural-text font-mono">{customer.nid}</span></p>
+                      </div>
+                    </div>
+
+                    {/* Receipt Description Table */}
+                    <table className="w-full text-xs text-left border-collapse border border-natural-border mt-6 mb-8">
+                      <thead>
+                        <tr className="bg-natural-sidebar border-b border-natural-border">
+                          <th className="p-3 border-r border-natural-border font-bold text-natural-text">{labelParticulars}</th>
+                          <th className="p-3 border-r border-natural-border font-bold text-natural-text">{labelMethod}</th>
+                          <th className="p-3 text-right font-bold text-natural-text">{labelAmount}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b border-natural-border">
+                          <td className="p-4 border-r border-natural-border leading-relaxed">
+                            <p className="font-bold text-natural-text">
+                              {selectedPayment ? (
+                                selectedPayment.type === 'Booking' ? (isBn ? 'প্লট বুকিং বাবদ অগ্রিম পেমেন্ট' : isEn ? 'Advance Booking Money for Plot Booking' : 'প্লট বুকিং বাবদ অগ্রিম পেমেন্ট / Advance Booking Money for Plot Booking') :
+                                selectedPayment.type === 'Down Payment' ? (isBn ? 'প্লট ক্রয়ের ডাউন পেমেন্ট' : isEn ? 'Down Payment for Plot Purchase' : 'প্লট ক্রয়ের ডাউন পেমেন্ট / Down Payment for Plot Purchase') :
+                                selectedPayment.type === 'Installment' ? (isBn ? 'প্লটের নিয়মিত কিস্তি বাবদ পরিশোধ' : isEn ? 'Regular Installment Payment' : 'প্লটের নিয়মিত কিস্তি বাবদ পরিশোধ / Regular Installment Payment') :
+                                selectedPayment.type === 'Previous Payment' ? (isBn ? 'পূর্ববর্তী বকেয়া পেমেন্ট বাবদ পরিশোধ' : isEn ? 'Previous Outstanding Payment Clearing' : 'পূর্ববর্তী বকেয়া পেমেন্ট বাবদ পরিশোধ / Previous Outstanding Payment Clearing') :
+                                selectedPayment.type === 'Re-Payment' ? (isBn ? 'রি-পেমেন্ট বাবদ পরিশোধ' : isEn ? 'Re-Payment Settlement' : 'রি-পেমেন্ট বাবদ পরিশোধ / Re-Payment Settlement') :
+                                selectedPayment.type === 'Total Payment' ? (isBn ? 'মোট পেমেন্ট বাবদ সম্পূর্ণ পরিশোধ' : isEn ? 'Full and Final Contract Payment' : 'মোট পেমেন্ট বাবদ সম্পূর্ণ পরিশোধ / Full and Final Contract Payment') :
+                                selectedPayment.type === 'Withdraw' ? (isBn ? 'গ্রাহক কর্তৃক জমা টাকা উত্তোলন / উইথড্র' : isEn ? 'Customer Fund Withdrawal' : 'গ্রাহক কর্তৃক জমা টাকা উত্তোলন / উইথড্র / Customer Fund Withdrawal') :
+                                selectedPayment.type === 'PLOT Cancel' ? (isBn ? 'প্লট বাতিল বাবদ ফেরত পরিশোধ' : isEn ? 'Plot Cancellation Refund' : 'প্লট বাতিল বাবদ ফেরত পরিশোধ / Plot Cancellation Refund') :
+                                (isBn ? 'অন্যান্য পেমেন্ট পরিশোধ' : isEn ? 'Miscellaneous payment' : 'অন্যান্য পেমেন্ট পরিশোধ / Miscellaneous payment')
+                              ) : (isBn ? 'আজকের পেমেন্ট পরিশোধ' : isEn ? "Today's Payment Processing" : 'আজকের পেমেন্ট পরিশোধ / Today\'s Payment Processing')}
+                            </p>
+                            {selectedPayment?.remarks && (
+                              <p className="text-[10px] bg-natural-sidebar text-natural-text px-2.5 py-1 rounded-xl border border-natural-border mt-2 font-mono">
+                                {isBn ? 'মন্তব্য: ' : isEn ? 'Remarks: ' : 'মন্তব্য / Remarks: '}{selectedPayment.remarks}
+                              </p>
+                            )}
+                          </td>
+                          <td className="p-4 border-r border-natural-border">
+                            <span className="font-bold bg-natural-sidebar px-2.5 py-1 rounded border border-natural-border text-natural-text">
+                              {selectedPayment ? selectedPayment.paymentMethod : 'Cash'}
+                            </span>
+                          </td>
+                          <td className="p-4 text-right font-serif font-bold text-natural-text text-sm">
+                            ৳ {formatCurrency(selectedPayment ? selectedPayment.amount : 0)}
+                          </td>
+                        </tr>
+                        <tr className="bg-natural-sidebar/20 font-bold">
+                          <td colSpan={2} className="p-3 text-right border-r border-natural-border text-natural-text">
+                            {isBn ? 'মোট পরিশোধিত টাকা:' : isEn ? 'Total Paid Amount:' : 'মোট পরিশোধিত টাকা / Total Paid Amount:'}
+                          </td>
+                          <td className="p-3 text-right font-serif text-natural-primary text-sm">৳ {formatCurrency(selectedPayment ? selectedPayment.amount : 0)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    {/* Words Translation */}
+                    <div className="text-xs space-y-3 border border-natural-border p-4 rounded-2xl bg-natural-sidebar/40 mb-8">
+                      {(isBn || !isEn) && (
+                        <p>
+                          <span className="font-bold text-natural-primary">টাকা কথায়:</span>{' '}
+                          <span className="font-medium underline decoration-dotted decoration-natural-primary decoration-2 text-natural-text">
+                            {selectedPayment ? numberToBengaliWords(selectedPayment.amount) : 'শূণ্য টাকা মাত্র'}
+                          </span>
+                        </p>
+                      )}
+                      {(isEn || !isBn) && (
+                        <p>
+                          <span className="font-bold text-natural-primary">Amount in Words:</span>{' '}
+                          <span className="font-medium underline decoration-dotted decoration-natural-primary decoration-2 italic text-natural-text">
+                            {selectedPayment ? numberToEnglishWords(selectedPayment.amount) : 'Zero Taka Only'}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Detailed Price & Payment Status Block */}
+                    <div className="border border-natural-border rounded-2xl p-4 bg-natural-sidebar/15 text-xs mb-12">
+                      <h4 className="font-bold text-natural-primary border-b border-natural-border pb-1.5 mb-3 uppercase tracking-wider">
+                        {isBn ? 'মূল্য ও পরিশোধ বিবরণী' : isEn ? 'Price & Payment Details' : 'মূল্য ও পরিশোধ বিবরণী / Price & Payment Details'}
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 font-medium">
+                        <div className="flex justify-between border-b border-natural-border/30 py-1.5">
+                          <span className="text-natural-muted">
+                            {isBn ? 'প্রতি শতাংশ মূল্য' : isEn ? 'Price Per Decimal' : 'প্রতি শতাংশ মূল্য / Price Per Decimal'}:
+                          </span>
+                          <span className="font-serif font-bold text-natural-text">
+                            ৳ {formatCurrency(customer.pricePerDecimal)} Tk.
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-b border-natural-border/30 py-1.5">
+                          <span className="text-natural-muted">
+                            {isBn ? `মোট মূল্য (${customer.plotSize} শতাংশ)` : isEn ? `Total Price (${customer.plotSize} Decimal)` : `মোট মূল্য / Total Price (${customer.plotSize} Decimal)`}:
+                          </span>
+                          <span className="font-serif font-bold text-natural-text">
+                            ৳ {formatCurrency(customer.totalPrice)} Tk.
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-b border-natural-border/30 py-1.5">
+                          <span className="text-natural-muted">
+                            {isBn ? `বুকিং পেমেন্ট (${bookingPaymentObj ? formatDate(bookingPaymentObj.date) : ''})` : isEn ? `Booking Payment (${bookingPaymentObj ? formatDate(bookingPaymentObj.date) : ''})` : `বুকিং পেমেন্ট / Booking Payment (${bookingPaymentObj ? formatDate(bookingPaymentObj.date) : ''})`}:
+                          </span>
+                          <span className="font-serif font-bold text-natural-text">
+                            ৳ {formatCurrency(bookingPayment)} Tk.
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-b border-natural-border/30 py-1.5">
+                          <span className="text-natural-muted">
+                            {isBn ? 'মোট পরিশোধিত' : isEn ? 'Total Payment' : 'মোট পরিশোধিত / Total Payment'}:
+                          </span>
+                          <span className="font-serif font-bold text-natural-primary">
+                            ৳ {formatCurrency(totalPaid)} Tk.
+                          </span>
+                        </div>
+                        <div className="flex justify-between md:col-span-2 bg-white border border-natural-border/70 px-3 py-2 rounded-xl mt-1 shadow-sm">
+                          <span className="font-bold text-natural-muted">
+                            {isBn ? 'বর্তমান বকেয়া' : isEn ? 'Present Due' : 'বর্তমান বকেয়া / Present Due'}:
+                          </span>
+                          <span className="font-serif font-bold text-rose-700 text-sm">
+                            ৳ {formatCurrency(totalDue)} Tk.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Signatures Slot */}
+                    <div className="mt-16 flex justify-end">
+                      <div className="space-y-1 text-center font-serif min-w-[240px]">
+                        <p className="text-xs font-semibold font-sans text-natural-muted text-center mb-16">
+                          {isBn ? 'স্বাক্ষর:' : isEn ? 'Signature:' : 'স্বাক্ষর / Signature:'}
+                        </p>
+                        <div className="border-t border-natural-border/60 pt-2 font-sans">
+                          <p className="font-bold text-natural-text text-xs">S.M. Mahfuzul Karim Milon</p>
+                          <p className="text-[10px] text-natural-muted font-medium">(Managing Director)</p>
+                          <p className="font-bold text-natural-primary text-[10px] mt-0.5">A.R. Properties and Developers</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            )}
+                );
+              })()}
 
             {/* ======================================= */}
             {/* DOCUMENT 2: ACKNOWLEDGEMENT LETTER      */}
