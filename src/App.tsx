@@ -343,10 +343,41 @@ export default function App() {
   };
 
   // Delete Project
-  const handleDeleteProject = (id: string) => {
-    const updated = projects.filter(p => p.id !== id);
-    saveProjectsToStorage(updated);
-    deleteProjectFromDB(id); // Delete from Firestore
+  const handleDeleteProject = (idOrName: string) => {
+    const targetProject = projects.find(p => p.id === idOrName || p.name.trim().toLowerCase() === idOrName.trim().toLowerCase());
+    const projName = targetProject ? targetProject.name : idOrName;
+
+    // 1. Delete the project itself if it exists in projects state
+    const updatedProjects = projects.filter(p => p.id !== idOrName && p.name.trim().toLowerCase() !== idOrName.trim().toLowerCase());
+    saveProjectsToStorage(updatedProjects);
+    if (targetProject) {
+      deleteProjectFromDB(targetProject.id); // Delete from Firestore
+    }
+
+    // 2. Cascade delete customers belonging to this project (case-insensitive & trimmed comparison)
+    const targetProjNameNormal = projName.trim().toLowerCase();
+    const customersToDelete = customers.filter(c => (c.projectName || '').trim().toLowerCase() === targetProjNameNormal);
+    const customerIdsToDelete = new Set(customersToDelete.map(c => c.customerId));
+    const customerDbIdsToDelete = new Set(customersToDelete.map(c => c.id));
+
+    if (customersToDelete.length > 0) {
+      console.log(`Cascading delete: removing ${customersToDelete.length} customers belonging to project "${projName}"`);
+      const updatedCustomers = customers.filter(c => !customerDbIdsToDelete.has(c.id));
+      saveCustomersToStorage(updatedCustomers);
+
+      for (const c of customersToDelete) {
+        deleteCustomerFromDB(c.id);
+      }
+
+      // 3. Cascade delete payments belonging to those customers
+      const updatedPayments = payments.filter(p => !customerIdsToDelete.has(p.customerId));
+      savePaymentsToStorage(updatedPayments);
+
+      const paymentsToDelete = payments.filter(p => customerIdsToDelete.has(p.customerId));
+      for (const p of paymentsToDelete) {
+        deletePaymentFromDB(p.id);
+      }
+    }
   };
 
   // Restore State from JSON Backup
@@ -513,7 +544,7 @@ export default function App() {
 
   return (
     <div 
-      className="min-h-screen bg-natural-bg flex text-natural-text font-sans antialiased overflow-hidden"
+      className="min-h-screen bg-natural-bg flex flex-col text-natural-text font-sans antialiased overflow-hidden"
       style={{
         '--color-natural-primary': primary,
         '--color-natural-primary-hover': hover,
@@ -521,9 +552,30 @@ export default function App() {
     >
       
       {/* ======================================= */}
-      {/* 1. SIDEBAR NAVIGATION RAIL (no-print)   */}
+      {/* 0. TOP SCROLLING NOTICE (no-print)      */}
       {/* ======================================= */}
-      <aside className="w-72 bg-natural-sidebar text-natural-text flex flex-col justify-between border-r border-natural-border no-print flex-shrink-0 relative z-30">
+      {companySettings.enableScrollingNotice && companySettings.scrollingNotice && (
+        <div className="w-full bg-natural-primary text-white border-b border-black/10 flex items-center h-10 select-none overflow-hidden no-print shrink-0 relative z-40">
+          <div 
+            className="text-[10px] font-extrabold uppercase px-4 h-full flex items-center tracking-wider shrink-0 z-10 shadow-md text-white font-mono"
+            style={{ backgroundColor: hover || '#4D4D36' }}
+          >
+            নোটিশ / Notice
+          </div>
+          <div className="flex-1 overflow-hidden relative flex items-center">
+            <marquee className="text-xs font-bold whitespace-nowrap" scrollamount="5">
+              {companySettings.scrollingNotice}
+            </marquee>
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 flex overflow-hidden">
+        
+        {/* ======================================= */}
+        {/* 1. SIDEBAR NAVIGATION RAIL (no-print)   */}
+        {/* ======================================= */}
+        <aside className="w-72 bg-natural-sidebar text-natural-text flex flex-col justify-between border-r border-natural-border no-print flex-shrink-0 relative z-30">
         
         <div className="space-y-6">
           {/* Logo Brand Header */}
@@ -680,6 +732,7 @@ export default function App() {
                 projects={projects}
                 companySettings={companySettings}
                 onQuickPrint={handleQuickPrint}
+                onEditCustomer={handleEditCustomer}
               />
             )}
 
@@ -700,6 +753,8 @@ export default function App() {
 
           </div>
         </main>
+
+      </div>
 
       </div>
 

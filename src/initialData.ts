@@ -148,4 +148,6 @@ export const defaultCompanySettings: CompanySettings = {
   website: 'www.arproperties.com.bd',
   bankDetails: 'ডাচ-বাংলা ব্যাংক পিএলসি, উত্তরা শাখা, হিসাব নং: ১২৩.১০৫.৪৫৬৭৮ (Dutch-Bangla Bank PLC, Uttara Branch, A/C: 123.105.45678)',
   themeColor: 'natural',
+  scrollingNotice: 'আসসালামু আলাইকুম, এ আর প্রোপার্টিজ অ্যান্ড ডেভেলপারস-এর ইআরপি সিস্টেমে আপনাকে স্বাগতম। আধুনিক আবাসন গড়তে আমরা সর্বদাই আপনার পাশে আছি। যেকোনো তথ্যের জন্য আমাদের সাথে যোগাযোগ করুন।',
+  enableScrollingNotice: true,
 };

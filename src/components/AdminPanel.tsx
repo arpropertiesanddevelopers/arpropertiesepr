@@ -53,6 +53,21 @@ export default function AdminPanel({
   payments,
   onClearAllData
 }: AdminPanelProps) {
+  // Combine projects list with any distinct projects found in customers that are not in projects state
+  const distinctProjectNames = Array.from(new Set(customers.map(c => c.projectName))).filter(Boolean);
+  
+  const mergedProjects = [
+    ...projects.map(p => ({ ...p, isVirtual: false })),
+    ...distinctProjectNames
+      .filter(name => !projects.some(p => p.name.trim().toLowerCase() === name.trim().toLowerCase()))
+      .map((name) => ({
+        id: name, // Use the name itself as the ID for virtual projects
+        name,
+        address: 'গ্রাহক তথ্য থেকে প্রাপ্ত ডেমো (Demo Registered from Customer Directory)',
+        isVirtual: true
+      }))
+  ];
+
   // Admin Tabs
   const [adminTab, setAdminTab] = useState<'profile' | 'projects' | 'theme' | 'backup' | 'google-sync' | 'security'>('profile');
 
@@ -189,6 +204,8 @@ export default function AdminPanel({
   const [email, setEmail] = useState(settings.email);
   const [website, setWebsite] = useState(settings.website || '');
   const [bankDetails, setBankDetails] = useState(settings.bankDetails || '');
+  const [scrollingNotice, setScrollingNotice] = useState(settings.scrollingNotice || '');
+  const [enableScrollingNotice, setEnableScrollingNotice] = useState(settings.enableScrollingNotice ?? false);
   
   // Project Form States
   const [newProjName, setNewProjName] = useState('');
@@ -226,7 +243,9 @@ export default function AdminPanel({
       phone: phone.trim(),
       email: email.trim(),
       website: website.trim(),
-      bankDetails: bankDetails.trim()
+      bankDetails: bankDetails.trim(),
+      scrollingNotice: scrollingNotice.trim(),
+      enableScrollingNotice
     };
 
     onSaveSettings(updatedSettings);
@@ -319,6 +338,8 @@ export default function AdminPanel({
           setEmail(parsed.companySettings.email);
           setWebsite(parsed.companySettings.website || '');
           setBankDetails(parsed.companySettings.bankDetails || '');
+          setScrollingNotice(parsed.companySettings.scrollingNotice || '');
+          setEnableScrollingNotice(parsed.companySettings.enableScrollingNotice ?? false);
 
           if (fileInputRef.current) fileInputRef.current.value = '';
         } else {
@@ -540,6 +561,36 @@ export default function AdminPanel({
                     ></textarea>
                   </div>
 
+                  <div className="space-y-4 sm:col-span-2 border-t border-dashed border-natural-border pt-4">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="enableScrollingNotice"
+                        checked={enableScrollingNotice}
+                        onChange={(e) => setEnableScrollingNotice(e.target.checked)}
+                        className="w-4.5 h-4.5 text-natural-primary focus:ring-natural-primary border-natural-border rounded cursor-pointer"
+                      />
+                      <label htmlFor="enableScrollingNotice" className="text-natural-text font-bold text-xs select-none cursor-pointer">
+                        📢 সিস্টেমে স্ক্রোলিং নোটিশ চালু করুন (Enable Scrolling Notice Bar on Top)
+                      </label>
+                    </div>
+
+                    {enableScrollingNotice && (
+                      <div className="space-y-1 pl-6">
+                        <label className="text-natural-muted font-bold">নোটিশের বিবরণ (Notice Message) *</label>
+                        <textarea
+                          placeholder="যে নোটিশটি স্ক্রোল করবে তা এখানে লিখুন..."
+                          value={scrollingNotice}
+                          onChange={(e) => setScrollingNotice(e.target.value)}
+                          rows={2}
+                          className="w-full border border-natural-border bg-natural-sidebar focus:bg-white focus:border-natural-primary rounded-xl px-3 py-2.5 outline-none font-medium text-natural-text"
+                          required={enableScrollingNotice}
+                        ></textarea>
+                        <p className="text-[10px] text-natural-muted font-bold">এটি সিস্টেমের একদম উপরে একটি সুন্দর এনিমেটেড নোটিশ বার হিসেবে স্ক্রোল করবে।</p>
+                      </div>
+                    )}
+                  </div>
+
                 </div>
 
                 {saveSuccess && (
@@ -621,7 +672,7 @@ export default function AdminPanel({
 
               {/* Projects List Table */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-natural-muted uppercase tracking-wider">বিদ্যমান প্রকল্পসমূহ: ({projects.length})</h4>
+                <h4 className="text-xs font-bold text-natural-muted uppercase tracking-wider">বিদ্যমান প্রকল্পসমূহ: ({mergedProjects.length})</h4>
                 <div className="border border-natural-border rounded-2xl overflow-hidden">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
@@ -632,16 +683,31 @@ export default function AdminPanel({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-natural-sidebar">
-                      {projects.length > 0 ? (
-                        projects.map(p => (
+                      {mergedProjects.length > 0 ? (
+                        mergedProjects.map(p => (
                           <tr key={p.id} className="hover:bg-natural-sidebar/30 transition-colors">
-                            <td className="p-3 font-bold text-natural-text">{p.name}</td>
+                            <td className="p-3 font-bold text-natural-text">
+                              <div className="flex flex-col gap-1">
+                                <span>{p.name}</span>
+                                {p.isVirtual && (
+                                  <span className="inline-block bg-amber-50 text-amber-800 border border-amber-200 text-[9px] px-1.5 py-0.5 rounded font-medium max-w-fit">
+                                    ⚠️ গ্রাহক তালিকায় থাকা ডেমো ডেটা (Demo Record)
+                                  </span>
+                                )}
+                              </div>
+                            </td>
                             <td className="p-3 text-natural-muted">{p.address}</td>
                             <td className="p-3 text-center">
                               <button
                                 type="button"
                                 onClick={() => {
-                                  if (confirm(`আপনি কি সত্যিই "${p.name}" প্রকল্পটি মুছে ফেলতে চান?`)) {
+                                  const projNameNormal = p.name.trim().toLowerCase();
+                                  const customerCount = customers.filter(c => (c.projectName || '').trim().toLowerCase() === projNameNormal).length;
+                                  let confirmMsg = `আপনি কি সত্যিই "${p.name}" প্রকল্পটি মুছে ফেলতে চান?`;
+                                  if (customerCount > 0) {
+                                    confirmMsg += `\n\n🚨 সতর্কতা: এই প্রকল্পের সাথে যুক্ত ${customerCount} জন গ্রাহক এবং তাদের সমস্ত পেমেন্ট হিস্ট্রিও চিরতরে মুছে যাবে! এই পরিবর্তন আর ফেরত আনা সম্ভব নয়।`;
+                                  }
+                                  if (confirm(confirmMsg)) {
                                     onDeleteProject(p.id);
                                   }
                                 }}

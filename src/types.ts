@@ -39,6 +39,8 @@ export interface CompanySettings {
   website: string;
   bankDetails: string;
   themeColor?: 'natural' | 'blue' | 'red' | 'green';
+  scrollingNotice?: string;
+  enableScrollingNotice?: boolean;
 }
 
 export interface Project {

@@ -12,7 +12,7 @@
   --color-natural-border: #E4E0D8;
   --color-natural-primary: #123C24;
   --color-natural-primary-hover: #0B2516;
-  --color-natural-muted: #5D615E;
+  --color-natural-muted: #3D413F;
 }
 
 /* Custom CSS for A4 Printable Views */
@@ -23,6 +23,13 @@
     font-size: 12px;
     padding: 0 !important;
     margin: 0 !important;
+  }
+
+  /* Force all printed text to high-contrast dark black */
+  body, p, span, div, td, th, h1, h2, h3, h4, h5, h6, strong, b, i, em, label, option, select, input, textarea {
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   
   /* Hide UI elements during print */
