@@ -21,7 +21,12 @@ export default function Dashboard({
   // Stats calculations
   const totalCustomers = customers.length;
   const totalBookingValue = customers.reduce((sum, c) => sum + c.totalPrice, 0);
-  const totalCollected = payments.reduce((sum, p) => sum + p.amount, 0);
+  const totalCollected = payments.reduce((sum, p) => {
+    if (p.type === 'Withdraw' || p.type === 'PLOT Cancel') {
+      return sum - p.amount;
+    }
+    return sum + p.amount;
+  }, 0);
   const totalDue = Math.max(0, totalBookingValue - totalCollected);
 
   // Recent payments

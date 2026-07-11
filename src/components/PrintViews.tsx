@@ -82,7 +82,7 @@ export default function PrintViews({
 
   const getDocTitle = () => {
     switch (activePrintDoc) {
-      case 'receipt': return 'Acknowledgment Letter for Final Price & Payment Schedule';
+      case 'receipt': return 'মানি রিসিট / Money Receipt';
       case 'acknowledgment': return 'Acknowledgment Letter for Final Price & Payment Schedule';
       case 'schedule': return 'পরিশোধের সময়সূচী / Payment Schedule';
       case 'history': return 'পেমেন্ট খতিয়ান / Payment Ledger';
