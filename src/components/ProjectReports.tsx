@@ -790,15 +790,14 @@ export default function ProjectReports({
                         <p>এই প্রতিবেদনটি এ.আর. প্রোপার্টিজ অ্যান্ড ডেভেলপারস-এর অভ্যন্তরীণ সিস্টেম থেকে স্বয়ংক্রিয়ভাবে জেনারেট করা হয়েছে।</p>
                       </div>
 
-                      <div className="mt-20 grid grid-cols-2 gap-12 text-center text-[10px] font-semibold text-natural-text">
-                        <div className="space-y-1">
-                          <div className="border-t border-natural-border/60 pt-2 w-32 mx-auto"></div>
-                          <p>প্রস্তুতকারী কর্মকর্তা (Prepared By)</p>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="border-t border-natural-border/60 pt-2 w-32 mx-auto"></div>
-                          <p>অনুমোদনকারী (Managing Director)</p>
-                          <p className="text-[9px] text-natural-primary font-bold">A.R. Properties & Developers</p>
+                      <div className="mt-20 flex justify-end">
+                        <div className="space-y-1 text-center font-serif min-w-[240px]">
+                          <p className="text-xs font-semibold font-sans text-natural-muted text-center mb-16">অনুমোদনকারী / Authorized Officer:</p>
+                          <div className="border-t border-natural-border/60 pt-2 font-sans">
+                            <p className="font-bold text-natural-text text-xs">S.M. Mahfuzul Karim Milon</p>
+                            <p className="text-[10px] text-natural-muted font-medium">(Managing Director)</p>
+                            <p className="font-bold text-natural-primary text-[10px] mt-0.5">A.R. Properties and Developers</p>
+                          </div>
                         </div>
                       </div>
 

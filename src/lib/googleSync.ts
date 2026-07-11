@@ -13,7 +13,7 @@ provider.addScope('https://www.googleapis.com/auth/spreadsheets');
 provider.addScope('https://www.googleapis.com/auth/drive.file');
 
 // In-memory token cache
-let cachedAccessToken: string | null = null;
+let cachedAccessToken: string | null = typeof window !== 'undefined' ? localStorage.getItem('google_access_token') : null;
 let isSigningIn = false;
 
 /**
@@ -25,6 +25,9 @@ export const initAuth = (
 ) => {
   return onAuthStateChanged(auth, async (user: User | null) => {
     if (user) {
+      if (!cachedAccessToken && typeof window !== 'undefined') {
+        cachedAccessToken = localStorage.getItem('google_access_token');
+      }
       if (cachedAccessToken) {
         if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
       } else if (!isSigningIn) {
@@ -33,6 +36,9 @@ export const initAuth = (
       }
     } else {
       cachedAccessToken = null;
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('google_access_token');
+      }
       if (onAuthFailure) onAuthFailure();
     }
   });
@@ -51,6 +57,9 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
     }
 
     cachedAccessToken = credential.accessToken;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('google_access_token', cachedAccessToken);
+    }
     return { user: result.user, accessToken: cachedAccessToken };
   } catch (error: any) {
     console.error('Sign in error:', error);
@@ -66,12 +75,18 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
 export const logoutUser = async () => {
   await signOut(auth);
   cachedAccessToken = null;
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('google_access_token');
+  }
 };
 
 /**
  * Get Cached Access Token
  */
 export const getAccessToken = async (): Promise<string | null> => {
+  if (!cachedAccessToken && typeof window !== 'undefined') {
+    cachedAccessToken = localStorage.getItem('google_access_token');
+  }
   return cachedAccessToken;
 };
 
@@ -79,6 +94,13 @@ export const getAccessToken = async (): Promise<string | null> => {
  * Helper to extract detailed Google API error message
  */
 async function throwDetailedError(response: Response, defaultMessage: string): Promise<never> {
+  if (response.status === 401) {
+    cachedAccessToken = null;
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('google_access_token');
+    }
+    throw new Error('আপনার গুগল অ্যাকাউন্ট লগইন সেশনের মেয়াদ শেষ হয়ে গেছে (Session Expired)। অনুগ্রহ করে "ডিসকানেক্ট করুন" বাটনে ক্লিক করে পুনরায় কানেক্ট করুন।');
+  }
   let details = '';
   try {
     const errData = await response.json();
@@ -193,7 +215,12 @@ export async function syncToGoogleSheets(
 
   const customerRows = customers.map(c => {
     const custPayments = payments.filter(p => p.customerId === c.customerId);
-    const totalPaid = custPayments.reduce((sum, p) => sum + p.amount, 0);
+    const totalPaid = custPayments.reduce((sum, p) => {
+      if (p.type === 'Withdraw' || p.type === 'PLOT Cancel') {
+        return sum - p.amount;
+      }
+      return sum + p.amount;
+    }, 0);
     const totalDue = Math.max(0, c.totalPrice - totalPaid);
     return [
       c.customerId,

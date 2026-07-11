@@ -313,7 +313,12 @@ export default function CustomerCRUD({
 
     const rows = filteredCustomers.map(c => {
       const custPayments = payments.filter(p => p.customerId === c.customerId);
-      const totalPaid = custPayments.reduce((sum, p) => sum + p.amount, 0);
+      const totalPaid = custPayments.reduce((sum, p) => {
+        if (p.type === 'Withdraw' || p.type === 'PLOT Cancel') {
+          return sum - p.amount;
+        }
+        return sum + p.amount;
+      }, 0);
       const totalDue = Math.max(0, c.totalPrice - totalPaid);
 
       return [
