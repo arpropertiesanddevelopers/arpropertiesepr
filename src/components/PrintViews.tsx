@@ -395,21 +395,14 @@ export default function PrintViews({
                 </div>
 
                 {/* Signatures Slot */}
-                <div className="mt-20 grid grid-cols-3 gap-8 text-center text-[11px] font-semibold text-natural-text">
-                  <div className="space-y-1">
-                    <div className="border-t border-natural-border pt-2 w-32 mx-auto"></div>
-                    <p>গ্রাহকের স্বাক্ষর</p>
-                    <p className="text-[9px] text-natural-muted">Customer's Signature</p>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="border-t border-natural-border pt-2 w-32 mx-auto"></div>
-                    <p>আদায়কারী / ক্যাশিয়ার</p>
-                    <p className="text-[9px] text-natural-muted">Received By / Cashier</p>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="border-t border-natural-border pt-2 w-32 mx-auto"></div>
-                    <p>অনুমোদিত স্বাক্ষরকারী</p>
-                    <p className="text-[9px] text-natural-muted">Authorized Officer</p>
+                <div className="mt-20 flex justify-end">
+                  <div className="space-y-1 text-center font-serif min-w-[240px]">
+                    <p className="text-xs font-semibold font-sans text-natural-muted text-center mb-16">স্বাক্ষর / Signature:</p>
+                    <div className="border-t border-natural-border/60 pt-2">
+                      <p className="font-bold text-natural-text text-xs">S.M. Mahfuzul Karim Milon</p>
+                      <p className="text-[10px] text-natural-muted font-medium">(Managing Director)</p>
+                      <p className="font-bold text-natural-primary text-[10px] mt-0.5">A.R. Properties and Developers</p>
+                    </div>
                   </div>
                 </div>
               </div>
