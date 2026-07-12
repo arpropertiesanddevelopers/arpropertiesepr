@@ -325,13 +325,14 @@ export default function PrintViews({
                         <p><span className="font-semibold text-natural-muted">{labelReceiptNo}:</span> <span className="font-mono font-bold bg-white border border-natural-border px-2.5 py-0.5 rounded-lg text-natural-primary">{selectedPayment ? selectedPayment.receiptNo : 'REC-NEW'}</span></p>
                         <p><span className="font-semibold text-natural-muted">{labelCustomerId}:</span> <span className="font-bold text-natural-text">{customer.customerId}</span></p>
                         <p><span className="font-semibold text-natural-muted">{labelCustomerName}:</span> <span className="font-bold text-natural-text">{getLocalizedValue(customer.name)}</span></p>
-                        <p><span className="font-semibold text-natural-muted">{labelMobileNo}:</span> <span className="text-natural-text font-mono">{customer.mobile}</span></p>
+                        <p><span className="font-semibold text-natural-muted">{labelNid}:</span> <span className="text-natural-text font-mono font-bold">{customer.nid}</span></p>
+                        <p><span className="font-semibold text-natural-muted">{labelMobileNo}:</span> <span className="text-natural-text font-mono font-bold">{customer.mobile}</span></p>
                       </div>
                       <div className="space-y-2 text-right">
                         <p><span className="font-semibold text-natural-muted">{labelDate}:</span> <span className="font-bold text-natural-text font-mono">{selectedPayment ? formatDate(selectedPayment.date) : formatDate(new Date().toISOString().split('T')[0])}</span></p>
                         <p><span className="font-semibold text-natural-muted">{labelProject}:</span> <span className="font-bold text-natural-text">{getLocalizedValue(customer.projectName)}</span></p>
-                        <p><span className="font-semibold text-natural-muted">{labelPlotNo}:</span> <span className="text-natural-text font-bold">{getLocalizedValue(customer.plotNo) || 'N/A'} <span className="text-[10px] text-natural-muted font-normal">({isBn ? 'আকার:' : isEn ? 'Size:' : 'আকার / Size:'} {customer.plotSize} {isBn ? 'শতাংশ' : 'Decimal'})</span></span></p>
-                        <p><span className="font-semibold text-natural-muted">{labelNid}:</span> <span className="text-natural-text font-mono">{customer.nid}</span></p>
+                        <p><span className="font-semibold text-natural-muted">{labelPlotNo}:</span> <span className="text-natural-text font-bold">{getLocalizedValue(customer.plotNo) || 'N/A'}</span></p>
+                        <p><span className="font-semibold text-natural-muted">{isBn ? 'জমির পরিমাণ' : isEn ? 'Plot Size' : 'জমির পরিমাণ / Plot Size'}:</span> <span className="text-natural-text font-bold">{customer.plotSize} {isBn ? 'শতাংশ' : isEn ? 'Decimal' : 'শতাংশ / Decimal'}</span></p>
                       </div>
                     </div>
 
@@ -384,32 +385,20 @@ export default function PrintViews({
                       </tbody>
                     </table>
 
-                    {/* Words Translation */}
-                    <div className="text-xs space-y-3 border border-natural-border p-4 rounded-2xl bg-natural-sidebar/40 mb-8">
-                      {(isBn || !isEn) && (
-                        <p>
-                          <span className="font-bold text-natural-primary">টাকা কথায়:</span>{' '}
-                          <span className="font-medium underline decoration-dotted decoration-natural-primary decoration-2 text-natural-text">
-                            {selectedPayment ? numberToBengaliWords(selectedPayment.amount) : 'শূণ্য টাকা মাত্র'}
-                          </span>
-                        </p>
-                      )}
-                      {(isEn || !isBn) && (
-                        <p>
-                          <span className="font-bold text-natural-primary">Amount in Words:</span>{' '}
-                          <span className="font-medium underline decoration-dotted decoration-natural-primary decoration-2 italic text-natural-text">
-                            {selectedPayment ? numberToEnglishWords(selectedPayment.amount) : 'Zero Taka Only'}
-                          </span>
-                        </p>
-                      )}
-                    </div>
-
                     {/* Detailed Price & Payment Status Block */}
-                    <div className="border border-natural-border rounded-2xl p-4 bg-natural-sidebar/15 text-xs mb-12">
+                    <div className="border border-natural-border rounded-2xl p-4 bg-natural-sidebar/15 text-xs mb-8">
                       <h4 className="font-bold text-natural-primary border-b border-natural-border pb-1.5 mb-3 uppercase tracking-wider">
                         {isBn ? 'মূল্য ও পরিশোধ বিবরণী' : isEn ? 'Price & Payment Details' : 'মূল্য ও পরিশোধ বিবরণী / Price & Payment Details'}
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 font-medium">
+                        <div className="flex justify-between border-b border-natural-border/30 py-1.5">
+                          <span className="text-natural-muted">
+                            {isBn ? 'প্লট সাইজ' : isEn ? 'Plot Size' : 'প্লট সাইজ / Plot Size'}:
+                          </span>
+                          <span className="font-bold text-natural-text">
+                            {customer.plotSize} {isBn ? 'শতাংশ' : isEn ? 'Decimal' : 'শতাংশ / Decimal'}
+                          </span>
+                        </div>
                         <div className="flex justify-between border-b border-natural-border/30 py-1.5">
                           <span className="text-natural-muted">
                             {isBn ? 'প্রতি শতাংশ মূল্য' : isEn ? 'Price Per Decimal' : 'প্রতি শতাংশ মূল্য / Price Per Decimal'}:
@@ -420,7 +409,7 @@ export default function PrintViews({
                         </div>
                         <div className="flex justify-between border-b border-natural-border/30 py-1.5">
                           <span className="text-natural-muted">
-                            {isBn ? `মোট মূল্য (${customer.plotSize} শতাংশ)` : isEn ? `Total Price (${customer.plotSize} Decimal)` : `মোট মূল্য / Total Price (${customer.plotSize} Decimal)`}:
+                            {isBn ? 'টোটাল মূল্য' : isEn ? 'Total Price' : 'টোটাল মূল্য / Total Price'}:
                           </span>
                           <span className="font-serif font-bold text-natural-text">
                             ৳ {formatCurrency(customer.totalPrice)} Tk.
@@ -451,6 +440,12 @@ export default function PrintViews({
                           </span>
                         </div>
                       </div>
+                    </div>
+
+                    {/* Note Box instead of Words Translation */}
+                    <div className="text-xs border border-dashed border-natural-border p-4 rounded-2xl bg-natural-sidebar/40 mb-12 italic text-natural-text leading-relaxed">
+                      <p className="font-bold not-italic text-[10px] text-natural-primary uppercase tracking-wider mb-1.5">নোট / Note:</p>
+                      I the below undersigned on behalf of A.R. Properties and Developers in here by acknowledged the above payment schedule and also confirmed the balance money will be paid by mentioned customer when plot is ready as per company's norms.
                     </div>
 
                     {/* Signatures Slot */}
